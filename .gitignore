@@ -1,0 +1,6 @@
+*__pycache__
+dist/
+rdflib_rif.egg-info/
+build/
+.hypothesis/
+*.swp

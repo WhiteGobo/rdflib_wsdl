@@ -1,0 +1,125 @@
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sawsdl:  <http://www.w3.org/ns/sawsdl#> .
+@prefix whttp:   <http://www.w3.org/ns/wsdl/http#> .
+@prefix wsdl:    <http://www.w3.org/ns/wsdl-rdf#> .
+@prefix wsdlx:   <http://www.w3.org/ns/wsdl-extensions#> .
+@prefix wsoap:   <http://www.w3.org/ns/wsdl/soap#> .
+
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.description()>
+      a     wsdl:Description ;
+      wsdl:interface 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interface(reservationInterface)> ;
+      wsdl:binding 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.binding(reservationSOAPBinding)> ;
+      wsdl:service <http://greath.example.com/2004/wsdl/resSvc#wsdl.service(reservationService)> .
+
+
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.interface(reservationInterface)>
+      a     wsdl:Interface ;
+      rdfs:label "reservationInterface" ;
+      wsdl:interfaceOperation 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceOperation(reservationInterface/opCheckAvailability)> ;
+      wsdl:interfaceFault 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceFault(reservationInterface/invalidDataFault)> .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceOperation(reservationInterface/opCheckAvailability)>
+      a     wsdl:InterfaceOperation ;
+      rdfs:label "opCheckAvailability" ;
+      sawsdl:modelReference wsdlx:SafeInteraction ;
+      wsdl:interfaceMessageReference 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceMessageReference(reservationInterface/opCheckAvailability/In)> ,
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceMessageReference(reservationInterface/opCheckAvailability/Out)> ; 
+      wsdl:interfaceFaultReference 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceFaultReference(reservationInterface/opCheckAvailability/Out/invalidDataFault)> ;
+      wsdl:messageExchangePattern <http://www.w3.org/ns/wsdl/in-out> ;
+      wsdl:operationStyle <http://www.w3.org/ns/wsdl/style/iri> .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceMessageReference(reservationInterface/opCheckAvailability/In)>
+      a     wsdl:InterfaceMessageReference , wsdl:InputMessage ;
+      wsdl:elementDeclaration _:checkAvailabilty ;
+      wsdl:messageContentModel wsdl:ElementContent ;
+      wsdl:messageLabel <http://www.w3.org/ns/wsdl/in-out#In> .
+
+_:checkAvailabilty
+      a     wsdl:QName ;
+      wsdl:localName "checkAvailability" ;
+      wsdl:namespace <http://greath.example.com/2004/schemas/resSvc> .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceMessageReference(reservationInterface/opCheckAvailability/Out)>
+      a     wsdl:InterfaceMessageReference , wsdl:OutputMessage ;
+      wsdl:elementDeclaration _:checkAvailabilityResponse ;
+      wsdl:messageContentModel wsdl:ElementContent ;
+      wsdl:messageLabel <http://www.w3.org/ns/wsdl/in-out#Out> .
+
+_:checkAvailabilityResponse
+      a     wsdl:QName ;
+      wsdl:localName "checkAvailabilityResponse" ;
+      wsdl:namespace <http://greath.example.com/2004/schemas/resSvc> .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceFaultReference(reservationInterface/opCheckAvailability/Out/invalidDataFault)>
+      a     wsdl:InterfaceFaultReference , wsdl:OutputMessage ;
+      wsdl:interfaceFault 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceFault(reservationInterface/invalidDataFault)> ;
+      wsdl:messageLabel <http://www.w3.org/ns/wsdl/in-out#Out> .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceFault(reservationInterface/invalidDataFault)>
+      a     wsdl:InterfaceFault ;
+      rdfs:label "invalidDataFault" ;
+      wsdl:elementDeclaration _:invalidDataError ;
+      wsdl:messageContentModel wsdl:ElementContent .
+
+_:invalidDataError
+      a     wsdl:QName ;
+      wsdl:localName "invalidDataError" ;
+      wsdl:namespace <http://greath.example.com/2004/schemas/resSvc> .
+
+
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.binding(reservationSOAPBinding)>
+      a     wsdl:Binding , <http://www.w3.org/ns/wsdl/soap> ;
+      rdfs:label "reservationSOAPBinding" ;
+      wsdl:binds 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interface(reservationInterface)> ;
+      wsdl:bindingOperation 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.bindingOperation(reservationSOAPBinding/opCheckAvailability)> ;
+      wsdl:bindingFault 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.bindingFault(reservationSOAPBinding/invalidDataFault)> ;
+      whttp:defaultQueryParameterSeparator "&" ;
+      wsoap:protocol <http://www.w3.org/2003/05/soap/bindings/HTTP/> ;
+      wsoap:version "1.2" .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.bindingOperation(reservationSOAPBinding/opCheckAvailability)>
+      a     wsdl:BindingOperation ;
+      wsdl:binds 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceOperation(reservationInterface/opCheckAvailability)> ;
+      wsoap:soapMEP <http://www.w3.org/2003/05/soap/mep/soap-response> .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.bindingFault(reservationSOAPBinding/invalidDataFault)>
+      a     wsdl:BindingFault ;
+      wsdl:binds 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interfaceFault(reservationInterface/invalidDataFault)> ;
+      wsoap:faultCode _:Sender .
+
+_:Sender
+      a     wsdl:QName ;
+      wsdl:localName "Sender" ;
+      wsdl:namespace <http://www.w3.org/2003/05/soap-envelope> .
+
+
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.service(reservationService)>
+      a     wsdl:Service ;
+      rdfs:label "reservationService" ;
+      wsdl:endpoint 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.endpoint(reservationService/reservationEndpoint)> ;
+      wsdl:implements 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.interface(reservationInterface)> .
+
+<http://greath.example.com/2004/wsdl/resSvc#wsdl.endpoint(reservationService/reservationEndpoint)>
+      a     wsdl:Endpoint ;
+      rdfs:label "reservationEndpoint" ;
+      wsdl:address <http://greath.example.com/2004/reservation> ;
+      wsdl:usesBinding 
+            <http://greath.example.com/2004/wsdl/resSvc#wsdl.binding(reservationSOAPBinding)> .
