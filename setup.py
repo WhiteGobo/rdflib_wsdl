@@ -1,7 +1,6 @@
 import setuptools
 
-long_description=
-"""This module allows rdflib to load wsdl.
+long_description = """This module allows rdflib to load wsdl.
 
 You can load wsdl files via `rdflib.Graph.parse` with the parser plugin `wsdl`
 or `wsdl/xml`:
