@@ -26,7 +26,7 @@ from .wsdl_components import Binding, BindingFaultReference, BindingMessageRefer
 class UnexpectedNodetype(KeyError):
     """Is raised if an unexpected nodename is found in xmlfile"""
 
-G = TypeVar("G")
+G = TypeVar("G", bound="_state")
 class _createnode_mixin(Generic[G]):
     """This class specifies how transition between different levels
     are coordinated
