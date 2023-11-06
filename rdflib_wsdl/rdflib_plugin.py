@@ -3,7 +3,7 @@ import xml.sax
 from xml.sax import handler, make_parser, xmlreader, SAXParseException
 from xml.sax.handler import ErrorHandler
 from xml.sax.saxutils import escape, quoteattr
-from .xmlhandler_mainbody import WSDLXMLHandler
+from .xmlparser import WSDLXMLHandler
     
 import rdflib.parser
 from rdflib.exceptions import Error, ParserError
@@ -12,35 +12,20 @@ from rdflib.plugins.parsers.RDFVOC import RDFVOC
 from rdflib.term import BNode, Literal, URIRef
 import rdflib
 
-from . import xmlhandler
+from .wsdl_components import Description
+from .wsdl2rdf import generateRDF
 
 class WSDLXML_PluginException(rdflib.plugin.PluginException):
-    pass
-
-class _parsercreator(xml.sax.handler.ContentHandler):
-    @classmethod
-    def create_parser(cls, target, store) -> xmlreader.XMLReader:
-        parser = xml.sax.make_parser()
-        parser.setFeature(xml.sax.handler.feature_namespaces, 0)
-        #parser.setFeature(xml.sax.handler.feature_namespace_prefixes, 1)
-        self = cls(store)
-        self.setDocumentLocator(target)
-        # rdfxml.setDocumentLocator(_Locator(self.url, self.parser))
-        parser.setContentHandler(self)
-        parser.setErrorHandler(xml.sax.handler.ErrorHandler())
-        return parser
-
-class WSDLXMLHandler(_parsercreator, WSDLXMLHandler):
-    """Mainclass for creation of parsers for :term:`rif/xml`.
-    """
+    """Expected errortype of rdflib.Graph.parse."""
 
 class WSDLXMLParser(rdflib.parser.Parser):
-    _parser: xmlreader.XMLReader
+    _parser: WSDLXMLHandler
 
     def parse(self, source, sink, preserve_bnode_ids=None):
         """
-        :raises XMLRif_PluginException:
+        :raises WSDLXML_PluginException:
         """
+        description: Description
         self._parser = WSDLXMLHandler.create_parser(source, sink)
         content_handler = self._parser.getContentHandler()
         if preserve_bnode_ids is not None:

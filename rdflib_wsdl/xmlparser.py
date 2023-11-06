@@ -2,12 +2,33 @@ from typing import Optional, Tuple
 from collections.abc import Mapping
 import xml.sax
 import xml.sax.handler
-from .xmlhandler import _start, _state, name2qname, extract_namespaces
+from .xmlparser_states import _start, _state, name2qname, extract_namespaces, wsdl_description
+
 from .wsdl2rdf import generateRDF
 
 class WSDLXMLHandler(xml.sax.handler.ContentHandler):
+    """Transforms given wsdl/xml into rdf. Adds all triples to given sink.
+    """
     startingstate: type[_state] = _start
     locator: Optional
+
+    @classmethod
+    def create_parser(cls, target, store) -> "WSDLXMLHandler":
+        """Create a parser with this as content handler. Automaticly sets
+        all expected features. Parsing adds all generated rdf triples
+        to given store.
+        """
+        parser = xml.sax.make_parser()
+        parser.setFeature(xml.sax.handler.feature_namespaces, 0)
+        #parser.setFeature(xml.sax.handler.feature_namespace_prefixes, 1)
+        self = cls(store)
+        self.setDocumentLocator(target)
+        # rdfxml.setDocumentLocator(_Locator(self.url, self.parser))
+        parser.setContentHandler(self)
+        parser.setErrorHandler(xml.sax.handler.ErrorHandler())
+        return parser
+
+
     def __init__(self, store):
         self.store = store
         self.preserve_bnode_ids = False
@@ -44,12 +65,13 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
     #    raise Exception(buffer)
     #    super().feed()
 
-    def endDocument(self):
+    def endDocument(self) -> wsdl_description:
         """
         :TODO: Change endstate.close to return the graph.
         """
         assert isinstance(self.currentState, _start)
         #cant close basestate so use finalize instead of close
+
         for ax in generateRDF(self.currentState.first_state):
             self.store.add(ax)
         #endinfograph = self.currentState.finalize()
