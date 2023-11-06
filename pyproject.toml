@@ -1,0 +1,28 @@
+[project]
+name='rdflib_wsdl'
+version='0.1.1'
+authors = [
+	{name='Richard Focke Fechner', email='richardfechner@posteo.net'},
+]
+description="Parser for wsdl as plugin for rdflib"
+requires-python = ">=3.7"
+classifiers = [
+        "Programming Language :: Python :: 3",
+        "Operating System :: OS Independent",
+]
+dependencies = [
+	"rdflib",
+]
+
+[project.entry-points.'rdf.plugins.parser']
+wsdl = 'rdflib_wsdl:WSDLXMLParser'
+'wsdl/xml' = 'rdflib_wsdl:WSDLXMLParser'
+
+[project.urls]
+"Homepage" = "https://github.com/WhiteGobo/rdflib_wsdl"
+"Bug Tracker" = "https://github.com/WhiteGobo/rdflib_wsdl/issues"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
