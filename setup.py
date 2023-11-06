@@ -18,7 +18,7 @@ setuptools.setup(
 
     # url="https://example.com/rif-parser-rdflib",
     project_urls={
-        "Homepage": "https://github.com/WhiteGobo/rdflib_rif",
+        "Homepage": "https://github.com/WhiteGobo/rdflib_wsdl",
     },
     
     author='Richard Focke Fechner',
