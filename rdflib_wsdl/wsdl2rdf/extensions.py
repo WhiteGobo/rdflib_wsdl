@@ -291,29 +291,3 @@ httpExtension = parser(
         )
 
 sawsdlExtension = parser(interfaceOperation = _ext_sawsdl_interfaceOperation)
-
-default_extensions_binding = [
-        _ext_soap_map_binding,
-        _ext_http_binding,
-        ]
-default_extensions_bindingOperation = [
-        _ext_soap_map_bindingOperation,
-        _ext_http_bindingOperation,
-        ]
-default_extensions_bindingFault = [
-        _ext_soap_map_bindingFault,
-        _ext_http_bindingFault,
-        ]
-default_extensions_bindingMessageReference = [
-        _ext_soap_map_bindingMessageReference,
-        _ext_http_map_bindingMessageReference,
-        ]
-default_extensions_bindingFaultReference = [
-        _ext_soap_map_bindingFaultReference,
-        ]
-default_extensions_endpoint = [
-        _ext_http_endpoint,
-        ]
-default_extension_interfaceOperation = [
-        _ext_sawsdl_interfaceOperation,
-        ]
