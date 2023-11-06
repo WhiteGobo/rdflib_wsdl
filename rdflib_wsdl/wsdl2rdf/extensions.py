@@ -78,7 +78,8 @@ def _ext_soap_map_bindingFault(
             g.add((q, prop, obj))
         g.add((elemid, WSOAP.faultCode, q))
     try:
-        soap_fault_subcode = bindingFault.get(_ns_wsoap, "subcode", as_qname=True)
+        soap_fault_subcode = bindingFault.get(_ns_wsoap, "subcode",
+                                              as_qname=True)
     except KeyError:
         pass
     else:
@@ -167,10 +168,13 @@ def _ext_http_binding(g: Graph, binding: Binding) -> None:
     except KeyError:
         g.add((elemid, WHTTP.defaultQueryParameterSeparator, Literal("&")))
     else:
-        g.add((elemid, WHTTP.defaultQueryParameterSeparator, Literal(separator)))
+        g.add((elemid, WHTTP.defaultQueryParameterSeparator,
+               Literal(separator)))
 
-def _add_as_literal(g: Graph, elem, elemid, xml_namespace, xml_location, rdf_property,
-                    **literal_kwargs):
+def _add_as_literal(
+        g: Graph, elem, elemid, xml_namespace, xml_location, rdf_property,
+        **literal_kwargs,
+        ) -> None:
     """Adds value from xml-thingies as rdf triple if possible.
     Just a little helper for shorter code.
     """
@@ -181,7 +185,9 @@ def _add_as_literal(g: Graph, elem, elemid, xml_namespace, xml_location, rdf_pro
     else:
         g.add((elemid, rdf_property, Literal(value, **literal_kwargs)))
 
-def _ext_http_bindingOperation(g: Graph, bindingOperation: BindingOperation) -> None:
+def _ext_http_bindingOperation(
+        g: Graph, bindingOperation: BindingOperation,
+        ) -> None:
     """`https://www.w3.org/TR/wsdl20-rdf/#table2-26`_"""
     elemid = _create_id(bindingOperation)
     _add_as_literal(g, bindingOperation, elemid, _ns_whttp,
@@ -230,10 +236,13 @@ def _ext_http_bindingFault(g: Graph, bindingFault: BindingFault) -> None:
                     "contentEncoding", WHTTP.contentEncoding)
     _map_http_headerBlock(g, elemid, bindingFault)
 
-def _ext_http_map_bindingMessageReference(g: Graph, bindingMessageReference: BindingMessageReference) -> None:
+def _ext_http_map_bindingMessageReference(
+        g: Graph,
+        bindingMessageReference: BindingMessageReference,
+        ) -> None:
     """`https://www.w3.org/TR/wsdl20-rdf/#table2-28`_"""
     elemid = _create_id(bindingMessageReference)
-    _add_as_literal(g, bindingFault, elemid, _ns_whttp,
+    _add_as_literal(g, bindingMessageReference, elemid, _ns_whttp,
                     "contentEncoding", WHTTP.contentEncoding)
     _map_http_headerBlock(g, elemid, bindingMessageReference)
 
@@ -266,13 +275,15 @@ def _map_http_headerBlock(g: Graph, parentid: IdentifiedNode, parent) -> None:
     if offersHeader is None and reqHeader is None:
         return
     raise NotImplementedError()
-    if required:
-        g.add((parentid, WHTTP.requiresHeader, elemid))
-    else:
-        g.add((parentid, WHTTP.offersHeader, elemid))
-    g.add((elemid, WSDL.typeDefinition, qnameid))
+    #if required:
+    #    g.add((parentid, WHTTP.requiresHeader, elemid))
+    #else:
+    #    g.add((parentid, WHTTP.offersHeader, elemid))
+    #g.add((elemid, WSDL.typeDefinition, qnameid))
 
-def _ext_sawsdl_interfaceOperation(g: Graph, interfaceOperation: InterfaceOperation) -> None:
+def _ext_sawsdl_interfaceOperation(
+        g: Graph, interfaceOperation: InterfaceOperation,
+        ) -> None:
     try:
         safe = interfaceOperation.get(_ns_wsdlx, "safe")
     except KeyError:

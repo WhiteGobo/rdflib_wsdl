@@ -35,6 +35,10 @@ class _WSDLComponent(abc.ABC):
                          
 
 class Binding(_WSDLComponent):
+    @property
+    @abc.abstractmethod
+    def parent(self) -> "Description": ...
+
     @abc.abstractmethod
     def get(self, namespace: str, name: str, **kwargs: Any) -> Any:
         """This is needed to get access to data of extensions"""
@@ -176,7 +180,8 @@ class BindingOperation(_WSDLComponent):
 
     @property
     @abc.abstractmethod
-    def binding_message_references(self) -> Iterable["BindingMessageReference"]: ...
+    def binding_message_references(
+            self) -> Iterable["BindingMessageReference"]: ...
 
     @property
     @abc.abstractmethod
@@ -261,7 +266,7 @@ class ElementDeclaration(_WSDLComponent):
 
 class Endpoint(_WSDLComponent):
     @abc.abstractmethod
-    def get(self, namespace: str, name: str, **kwargs: Any) -> str: ...
+    def get(self, namespace: str, name: str, **kwargs: Any) -> Any: ...
 
     @property
     @abc.abstractmethod
@@ -286,7 +291,11 @@ class Endpoint(_WSDLComponent):
 class Interface(_WSDLComponent):
     @property
     @abc.abstractmethod
-    def extended_interfaces(self) -> Iterable[Tuple[str, str]]: ...
+    def parent(self) -> "Description": ...
+
+    @property
+    @abc.abstractmethod
+    def extended_interfaces(self) -> Iterable["Interface"]: ...
 
     @property
     @abc.abstractmethod
@@ -309,18 +318,17 @@ class Interface(_WSDLComponent):
 
 class InterfaceFault(_WSDLComponent):
     @property
-    def element_declaration(self) -> "ElementDeclaration":
+    def element_declaration(self) -> Tuple[str, str]:
         """
         :TODO: find a way to find the corresponding interface fault reference
         :raises StopIteration:
         """
-        raise NotImplementedError()
-        description = self.parentnode.parentnode
-        all_decl = description.element_declaration
-        try:
-            return next(x for x in all_decl if True)
-        except StopIteration:
-            raise
+        #description = self.parentnode.parentnode
+        #all_decl = description.element_declaration
+        #try:
+        #    return next(x for x in all_decl if True)
+        #except StopIteration:
+        #    raise
 
     @property
     @abc.abstractmethod
@@ -422,7 +430,7 @@ class InterfaceMessageReference(_WSDLComponent):
 
 class InterfaceOperation(_WSDLComponent):
     @abc.abstractmethod
-    def get(self, namespace: str, name: str, **kwargs: Any) -> str: ...
+    def get(self, namespace: str, name: str, **kwargs: Any) -> Any: ...
 
     @property
     @abc.abstractmethod
@@ -457,6 +465,9 @@ class InterfaceOperation(_WSDLComponent):
                 )
 
 class Service(_WSDLComponent):
+    @property
+    def parent(self) -> "Description": ...
+
     @property
     @abc.abstractmethod
     def endpoints(self) -> Iterable["Endpoint"]: ...

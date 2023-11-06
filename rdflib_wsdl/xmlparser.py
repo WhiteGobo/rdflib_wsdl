@@ -1,8 +1,11 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any
 from collections.abc import Mapping
 import xml.sax
 import xml.sax.handler
-from .xmlparser_states import _start, _state, name2qname, extract_namespaces, wsdl_description
+from xml.sax.xmlreader import XMLReader
+from .xmlparser_states import _start, _state, name2qname, wsdl_description
+from io import IOBase
+from xml.sax.xmlreader import AttributesImpl
 
 from .wsdl2rdf import generateRDF
 
@@ -10,10 +13,10 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
     """Transforms given wsdl/xml into rdf. Adds all triples to given sink.
     """
     startingstate: type[_state] = _start
-    locator: Optional
+    locator: Optional[IOBase]
 
     @classmethod
-    def create_parser(cls, target, store) -> "WSDLXMLHandler":
+    def create_parser(cls, target, store) -> XMLReader:
         """Create a parser with this as content handler. Automaticly sets
         all expected features. Parsing adds all generated rdf triples
         to given store.
@@ -52,25 +55,22 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
     def reset(self):
         pass
 
-    def setDocumentLocator(self, locator):
+    def setDocumentLocator(self, locator: IOBase):
         self.locator = locator
 
     def startDocument(self):
         self.currentState = self.startingstate()
         
-    def parse(self, *args):
+    def parse(self, *args: Any):
         raise Exception()
 
     #def feed(self, buffer):
     #    raise Exception(buffer)
     #    super().feed()
 
-    def endDocument(self) -> wsdl_description:
-        """
-        :TODO: Change endstate.close to return the graph.
-        """
+    def endDocument(self) -> None:
         assert isinstance(self.currentState, _start)
-        #cant close basestate so use finalize instead of close
+        assert self.currentState.first_state is not None
 
         for ax in generateRDF(self.currentState.first_state):
             self.store.add(ax)
@@ -78,13 +78,15 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
         #for ax in endinfograph:
         #    self.store.add(ax)
 
-    def startElement(self, name, attrs):
-        other_attrs, namespaces, defaultNS = extract_namespaces(attrs._attrs)
+    def startElement(self, name: str, attrs: AttributesImpl) -> None:
+        attrs_ = dict(attrs)
+        other_attrs, namespaces, defaultNS = extract_namespaces(attrs_)
         namespaces = {**self.currentState.namespaces, **namespaces}
         if defaultNS == None:
             defaultNS = self.currentState.default_namespace
+        assert defaultNS is not None
         qname = name2qname(name, defaultNS, namespaces)
-        self.currentState = self.currentState.transition(qname, attrs,
+        self.currentState = self.currentState.transition(qname, attrs_,
                                                          namespaces, defaultNS)
 
     def endElement(self, name):
@@ -108,3 +110,17 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
 
     def ignorableWhitespace(self, content):
         pass
+
+def extract_namespaces(attrs: Mapping[str, str],
+              defaultNS: Optional[str] = None,
+              ) -> Tuple[Mapping[str, str], Mapping[str, str], Optional[str]]:
+    other_attrs = {}
+    namespaces = {}
+    for key, x in attrs.items():
+        if key.startswith("xmlns:"):
+            namespaces[key[6:]] = x
+        elif key.startswith("xmlns"):
+            defaultNS = x
+        else:
+            other_attrs[key] = x
+    return other_attrs, namespaces, defaultNS

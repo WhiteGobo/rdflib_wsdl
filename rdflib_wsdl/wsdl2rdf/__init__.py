@@ -12,6 +12,8 @@ additional_parser: typ.Iterable[extension_parser_data]\
 """All available additional parsers specified by
 entrypoint 'rdflib_wsdl.extensions.parser'. See parser for more information.
 """
+if additional_parser:
+    raise Exception(additional_parser)
 
 all_parser = [sawsdlExtension, httpExtension, soapExtension,
               *additional_parser]

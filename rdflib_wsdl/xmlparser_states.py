@@ -3,7 +3,8 @@
 from collections.abc import Mapping
 import abc
 import typing as typ
-from typing import Optional, Union, Iterable, Tuple, Callable, Any
+from typing import Optional, Union, Iterable, Tuple, Callable, Any, overload,\
+        Generic, TypeVar, List
 from collections.abc import MutableMapping, Mapping
 
 from rdflib import Graph, Namespace, RDF, URIRef, RDFS, Literal, BNode, IdentifiedNode
@@ -16,7 +17,7 @@ from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urlunparse
 
 from .shared import _ns_wsdl, _ns_wsdlx, _ns_wsdlrdf, _ns_wsoap, _ns_whttp, _ns_wrpc, _ns_sawsdl, _ns_xs, WHTTP, WSDL, WSDLX, WSDL_RDF, WSOAP, SAWSDL
-from .shared import name2qname, extract_namespaces
+from .shared import name2qname
 
 from .wsdl_components import Binding, BindingFaultReference, BindingMessageReference, BindingOperation, Description, ElementDeclaration, Endpoint, Interface, InterfaceFault, InterfaceFaultReference, InterfaceMessageReference, InterfaceOperation, Service, TypeDefinition, Extension, BindingFault, MCM_ANY, MCM_NONE, MCM_OTHER, MCM_ELEMENT
 
@@ -25,17 +26,18 @@ from .wsdl_components import Binding, BindingFaultReference, BindingMessageRefer
 class UnexpectedNodetype(KeyError):
     """Is raised if an unexpected nodename is found in xmlfile"""
 
-class _createnode_mixin:
+G = TypeVar("G")
+class _createnode_mixin(Generic[G]):
     """This class specifies how transition between different levels
     are coordinated
     """
-    _special_states: Mapping[str, type["_state_with_axioms"]]
-    _default_state: Optional[type["_state"]] = None
+    _special_states: Mapping[Tuple[Optional[str], str], type[G]]
+    _default_state: Optional[type[G]] = None
     def transition(self, trans: Tuple[str, str],
-                   attrs: typ.Mapping,
+                   attrs: Mapping[Optional[str], str],
                    namespaces: Mapping[str, str],
                    default_namespace: str,
-                   ) -> "_createnode_mixin":
+                   ) -> G:
         """
         :param trans: This is the name of the xml-element
         :raises: BadSyntax
@@ -61,10 +63,10 @@ class _state(abc.ABC):
     _buffer: list
     namespace_base: str
     namespaces: Mapping[str, str]
-    default_namespace: Optional[str]
+    default_namespace: str
     def __init__(self, trans: Tuple[str, str],
                  parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
+                 attrs: Mapping[Optional[str], str],
                  namespaces: Mapping[str, str] = {},
                  default_namespace: Optional[str] = None,
                  ) -> None:
@@ -97,7 +99,7 @@ class _state(abc.ABC):
     @abc.abstractmethod
     def close(self) -> Optional["_state"]: ...
 
-class _to_ElementTree(_createnode_mixin, _state):
+class _to_ElementTree(_createnode_mixin[_state], _state):
     """This is used when an extension is used within the wsdl file.
     Extensions can be decievered via external mappings and are
     ignored if non is found.
@@ -105,9 +107,9 @@ class _to_ElementTree(_createnode_mixin, _state):
     element: ET.Element
     _special_states = {}
     #_default_state = self
-    def __init__(self, trans: str,
+    def __init__(self, trans: Tuple[str, str],
                  parentnode: Union[_state, "_start", "_to_ElementTree"],
-                 attrs: Mapping,
+                 attrs: Mapping[Optional[str], str],
                  namespaces: Mapping[str, str] = {},
                  default_namespace: Optional[str] = None,
                  ) -> None:
@@ -132,11 +134,11 @@ class _to_ElementTree(_createnode_mixin, _state):
 _to_ElementTree._default_state = _to_ElementTree
 
 
-class _start(_createnode_mixin, _state):
+class _start(_createnode_mixin["wsdl_description"], _state):
     """Startstate"""
     default_namespace = None
     namespaces = {}
-    first_state: Optional["_wsdl_element"]
+    first_state: Optional["wsdl_description"]
     namespace_base = "http://schemas.xmlsoap.org/wsdl/"
     def __init__(self) -> None:
         self.first_state = None
@@ -147,10 +149,10 @@ class _start(_createnode_mixin, _state):
         return self.axioms
 
     def transition(self, trans: Tuple[str, str],
-                   attrs: typ.Mapping,
+                   attrs: Mapping[Optional[str], str],
                    namespaces: Mapping[str, str],
                    default_namespace: str,
-                   ) -> "_wsdl_element":
+                   ) -> "wsdl_description":
         assert self.first_state is None, "Only one rootnode is expected"
         nextstate = super().transition(trans, attrs, namespaces,
                                        default_namespace)
@@ -161,16 +163,17 @@ class _start(_createnode_mixin, _state):
         raise Exception("base state isnt supposed to be closed")
 
 
-class _state_with_axioms(_createnode_mixin, _state):
+class _state_with_axioms(_createnode_mixin[G], _state):
     """
     :TODO: change append_axiom because this doesnt work with how 
         properties of class 2 work.
     """
     parentnode: _state
-    attrs: Mapping[Tuple[str, str], str]
+    attrs: Mapping[Tuple[Optional[str], str], str]
     namespaces: Mapping[str, str]
-    default_namespace: Optional[str]
-    def __init__(self, trans, parentnode: _state, attrs: Mapping[str, str],
+    default_namespace: str
+    def __init__(self, trans: Tuple[str, str], parentnode: _state,
+                 attrs: Mapping[str, str],
                  namespaces: Mapping[str, str] = {},
                  default_namespace: Optional[str] = None,
                  ):
@@ -198,19 +201,15 @@ class _state_with_axioms(_createnode_mixin, _state):
         except KeyError:
             self.namespace_base = parentnode.namespace_base
 
-    def get_targetNamespace(self) -> str:
-        return self.attrs.get((None, "targetNamespace"),
-                              self.parentnode.get_targetNamespace)
-
     def close(self) -> None:
         return
 
-class _wsdl_element(_state_with_axioms):
-    targetNamespace: str
-    child_nodes: Iterable["_wsdl_element"]
+class _wsdl_element(_state_with_axioms[G]):
+    child_nodes: List[G]
     """Register child nodes"""
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
+    def __init__(self, trans: Tuple[str, str],
+                 parentnode: Union["_start", "_state"],
+                 attrs: Mapping[str, str],
                  namespaces: Mapping[str, str] = {},
                  default_namespace: Optional[str] = None,
                  ) -> None:
@@ -219,29 +218,28 @@ class _wsdl_element(_state_with_axioms):
         self.child_nodes = []
 
     @property
+    def targetNamespace(self) -> str:
+        return self.parentnode.targetNamespace
+
+    @property
     def parent(self):
         return self.parentnode
 
     def transition(self, trans: Tuple[str, str],
-                   attrs: typ.Mapping,
+                   attrs: Mapping[Optional[str], str],
                    namespaces: Mapping[str, str],
                    default_namespace: str,
-                   ) -> "_wsdl_element":
+                   ) -> G:
         next_element = super().transition(trans, attrs, namespaces,
                                           default_namespace)
         self.child_nodes.append(next_element)
         return next_element
 
 
-class _wsdl_idelement(_wsdl_element):
-
-    @property
-    @abc.abstractmethod
-    def targetNamespace(self) -> str: ...
-
-class wsdl_description(_wsdl_idelement, Description):
+class wsdl_description(_wsdl_element[_wsdl_element], Description):
     """`https://www.w3.org/TR/wsdl/#Description`_"""
     name = None
+
     @property
     def bindings(self) -> Iterable["wsdl_binding"]:
         return [x for x in self.child_nodes if isinstance(x, wsdl_binding)]
@@ -259,8 +257,8 @@ class wsdl_description(_wsdl_idelement, Description):
             return []
         elems = elems_str.translate(REMOVE_EMPTY).split(",")
         raise Exception(elems)
-        return [x for x in self.child_nodes
-                if isinstance(x, wsdl_elementDeclaration)]
+        #return [x for x in self.child_nodes
+        #        if isinstance(x, wsdl_elementDeclaration)]
 
     @property
     def interfaces(self) -> Iterable["wsdl_interface"]:
@@ -274,10 +272,6 @@ class wsdl_description(_wsdl_idelement, Description):
     def type_definitions(self) -> Iterable["wsdl_types"]:
         types = next(x for x in self.child_nodes if isinstance(x, wsdl_types))
         return types.get_type_definitions()
-
-    @property
-    def sharedReferences(self) -> MutableMapping[str, BNode]:
-        return self._sharedReferences
 
     @property
     def targetNamespace(self) -> str:
@@ -309,7 +303,7 @@ class wsdl_typeextension(_to_ElementTree):
     def __init__(
             self, trans: Tuple[str, str],
             parentnode: Union["_start", "_state"],
-            attrs: Mapping,
+            attrs: Mapping[Optional[str], str],
             namespaces: Mapping[str, str] = {},
             default_namespace: Optional[str] = None,
             ) -> None:
@@ -328,31 +322,27 @@ class wsdl_typeextension(_to_ElementTree):
         self.xml_info = ET.ElementTree(self.element)
         return ret
 
-class wsdl_types(_wsdl_element):
+class wsdl_types(_wsdl_element[_wsdl_element], TypeDefinition):
     """
     :TODO: xs:import is missing as expected transtype
     """
     _default_state = wsdl_typeextension
     child_nodes: Iterable["wsdl_typeextension"]
 
-    def get_type_definitions(self) -> Iterable[TypeDefinition]:
-        for x in self.child_nodes.get_type_definitions():
-            yield x
+    def get_type_definitions(self):
+        raise NotImplementedError()
 
-    def get_element_declarations(self) -> Iterable[ElementDeclaration]:
-        for x in self.child_nodes:
-            for y in x.get_element_declarations():
-                yield y
-
-
-class _wsdl_properties(_wsdl_idelement):
-    @property
-    def sharedReferences(self) -> MutableMapping[str, BNode]:
-        return self.parentnode.sharedReferences
+    def get_element_declarations(self):
+        raise NotImplementedError()
 
     @property
-    def targetNamespace(self) -> str:
-        return self.parentnode.targetNamespace
+    def system(self):
+        raise NotImplementedError()
+
+
+
+class _wsdl_properties(_wsdl_element[_wsdl_element]):
+    parentnode: _wsdl_element
 
     @property
     @abc.abstractmethod
@@ -365,7 +355,7 @@ class wsdl_interface(_wsdl_properties, Interface):
         return self.attrs[(None, "name")]
 
     @property
-    def extended_interfaces(self) -> Iterable[Tuple[str, str]]:
+    def extended_interfaces(self) -> Iterable[Interface]:
         """
         :TODO: Implement according to `https://www.w3.org/TR/wsdl/#Interface`_
         """
@@ -389,7 +379,7 @@ class wsdl_interface(_wsdl_properties, Interface):
 
 class wsdl_binding(_wsdl_properties, Binding):
     def get(self, namespace: str, name: str, as_qname: bool=False,
-            **kwargs: Any) -> str:
+            **kwargs: Any) -> str | Tuple[str, str]:
         if kwargs:
             raise TypeError("Unexpected keywords: %s" % kwargs)
         try:
@@ -409,11 +399,6 @@ class wsdl_binding(_wsdl_properties, Binding):
     def binding_operations(self) -> Iterable["wsdl_bindingOperation"]:
         return (x for x in self.child_nodes
                 if isinstance(x, wsdl_bindingOperation))
-
-
-    def get_extensionData(self) -> Mapping[(str, str), str]:
-        return {key: x for key, x in self.attrs.items()
-                if key[0] is not None}
 
     @property
     def type(self) -> str:
@@ -453,8 +438,9 @@ class wsdl_service(_wsdl_properties, Service):
 
 
 class wsdl_bindingFault(_wsdl_properties, BindingFault):
+    parentnode: wsdl_binding
     def get(self, namespace: str, name: str, as_qname: bool=False,
-            **kwargs: Any) -> str:
+            **kwargs: Any) -> str | Tuple[str, str]:
         if kwargs:
             raise TypeError("Unexpected keywords: %s" % kwargs)
         try:
@@ -479,10 +465,6 @@ class wsdl_bindingFault(_wsdl_properties, BindingFault):
         return self.attrs[(None, "ref")]
 
     @property
-    def interface(self) -> str:
-        return self.parentnode.interface
-
-    @property
     def bindingName(self) -> str:
         return self.parentnode.name
 
@@ -497,8 +479,9 @@ class wsdl_bindingFault(_wsdl_properties, BindingFault):
         return name
 
 class wsdl_bindingOperation(_wsdl_properties, BindingOperation):
+    parentnode: wsdl_binding
     def get(self, namespace: str, name: str, as_qname: bool=False,
-            **kwargs: Any) -> str:
+            **kwargs: Any) -> str | Tuple[str, str]:
         if kwargs:
             raise TypeError("Unexpected keywords: %s" % kwargs)
         try:
@@ -529,10 +512,6 @@ class wsdl_bindingOperation(_wsdl_properties, BindingOperation):
         return self.parent.parent.get_interfaceOperation(ref_ns, ref_name)
 
     @property
-    def interface(self) -> str:
-        return self.parentnode.interface
-
-    @property
     def ref(self) -> str:
         return self.attrs[(None, "ref")]
 
@@ -552,7 +531,7 @@ class wsdl_bindingOperation(_wsdl_properties, BindingOperation):
 
 class wsdl_bindingMessageReference(_wsdl_element, BindingMessageReference):
     def get(self, namespace: str, name: str, as_qname: bool=False,
-            **kwargs: Any) -> str:
+            **kwargs: Any) -> str | Tuple[str, str]:
         if kwargs:
             raise TypeError("Unexpected keywords: %s" % kwargs)
         try:
@@ -569,7 +548,7 @@ class wsdl_bindingMessageReference(_wsdl_element, BindingMessageReference):
 
 class wsdl_bindingFaultReference(_wsdl_element, BindingFaultReference):
     def get(self, namespace: str, name: str, as_qname: bool=False,
-            **kwargs: Any) -> str:
+            **kwargs: Any) -> str | Tuple[str, str]:
         if kwargs:
             raise TypeError("Unexpected keywords: %s" % kwargs)
         try:
@@ -607,6 +586,7 @@ class wsdl_bindingFaultReferenceOut(wsdl_bindingFaultReference):
 
 
 class wsdl_interfaceFault(_wsdl_properties, InterfaceFault):
+    parentnode: wsdl_interface
 
     @property
     def message_content_model(self) -> str:
@@ -657,9 +637,10 @@ class wsdl_interfaceFault(_wsdl_properties, InterfaceFault):
 class wsdl_interfaceOperation(_wsdl_properties, InterfaceOperation):
     input: Optional["wsdl_input"]
     output: Optional["wsdl_output"]
+    parentnode: wsdl_interface
 
     def get(self, namespace: str, name: str, as_qname: bool=False,
-            **kwargs: Any) -> str:
+            **kwargs: Any) -> str | Tuple[str, str]:
         if kwargs:
             raise TypeError("Unexpected keywords: %s" % kwargs)
         try:
@@ -679,7 +660,7 @@ class wsdl_interfaceOperation(_wsdl_properties, InterfaceOperation):
 
     @property
     def interface_message_references(
-            self) -> Iterable["wsdl_interfaceMessageReference"]:
+            self) -> Iterable[Union["wsdl_input", "wsdl_output"]]:
         return [x for x in self.child_nodes
                 if isinstance(x, (wsdl_input, wsdl_output))]
 
@@ -720,8 +701,9 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
     """:term:`wsdl endpoint`
     For more information see `https://www.w3.org/TR/wsdl/#Endpoint`_
     """
+    parentnode: "wsdl_service"
     def get(self, namespace: str, name: str, as_qname: bool=False,
-            **kwargs: Any) -> str:
+            **kwargs: Any) -> str | Tuple[str, str]:
         if kwargs:
             raise TypeError("Unexpected keywords: %s" % kwargs)
         try:
@@ -735,7 +717,7 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
 
 
     @property
-    def binding(self) -> str:
+    def binding(self) -> "wsdl_binding":
         ns, name = name2qname(self.attrs[(None, "binding")],
                               self.default_namespace, self.namespaces)
         return next(x for x in self.parent.parent.bindings
@@ -746,7 +728,7 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
         return self.attrs[(None, "address")]
 
     @property
-    def service(self) -> str:
+    def service(self) -> "wsdl_service":
         return self.parentnode
 
     @property
@@ -756,15 +738,6 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
 
 class _wsdl_interfaceReference(_wsdl_properties):
     contentmodel: str
-    def __init__(self, trans: Tuple[str, str],
-                 parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs, namespaces,
-                         default_namespace)
-
 
     @property
     def contentModel(self) -> URIRef:
@@ -782,7 +755,9 @@ class _wsdl_interfaceReference(_wsdl_properties):
 
 
 
-class _wsdl_interfaceMessageReference(_wsdl_interfaceReference, InterfaceMessageReference):
+class _wsdl_interfaceMessageReference(_wsdl_interfaceReference,
+                                      InterfaceMessageReference):
+    parentnode: "wsdl_interfaceOperation"
 
     @property
     def element_declaration(self) -> Tuple[str, str]:
@@ -798,12 +773,6 @@ class _wsdl_interfaceMessageReference(_wsdl_interfaceReference, InterfaceMessage
         except Exception as err:
             raise AttributeError("No element declaration") from err
         return elem_ns, elem_name
-        q = self._get_all_element_declarations()
-
-        raise Exception(q)
-        q = [x for x in self.child_nodes
-                if isinstance(x, wsdl_elementDeclaration)]
-        raise Exception(elem_ns, elem_name, q)
 
     @property
     def message_content_model(self) -> str:
@@ -824,11 +793,11 @@ class _wsdl_interfaceMessageReference(_wsdl_interfaceReference, InterfaceMessage
         return self.attrs[(None, "messageLabel")]
 
     @property
-    def interface(self) -> str:
+    def interface(self) -> "wsdl_interface":
         return self.parentnode.parentnode
 
     @property
-    def operation(self) -> str:
+    def operation(self) -> "wsdl_interfaceOperation":
         return self.parentnode
 
     @property
@@ -854,13 +823,14 @@ class wsdl_output(_wsdl_interfaceMessageReference):
 
 #class _wsdl_interfaceFaultReference(_wsdl_interfaceReference):
 class _wsdl_interfaceFaultReference(_wsdl_properties, InterfaceFaultReference):
+    parentnode: wsdl_interfaceOperation
 
     @property
-    def interface(self) -> str:
+    def interface(self) -> wsdl_interface:
         return self.parentnode.parentnode
 
     @property
-    def operation(self) -> str:
+    def operation(self) -> wsdl_interfaceOperation:
         return self.parentnode
 
     @property
@@ -913,50 +883,52 @@ class wsdl_fault(_wsdl_element): ...
 class wsdl_operation(_wsdl_element): ...
 
 
-_start._special_states = {
+#ignore 'Access to generic instance variables via class is ambiguous'
+#See `https://github.com/python/mypy/issues/11063`_ for issuestatus
+_start._special_states = { #type: ignore[misc]
         (_ns_wsdl, "description"): wsdl_description,
         #_ns_wsdl + "": ,
         }
 #_createnode_mixin._default_state = _state_with_axioms
-wsdl_description._special_states = {
+wsdl_description._special_states = { #type: ignore[misc]
         (_ns_wsdl, "documentation"): wsdl_documentation,
         (_ns_wsdl, "binding"): wsdl_binding,
         (_ns_wsdl, "interface"): wsdl_interface,
         (_ns_wsdl, "service"): wsdl_service,
         (_ns_wsdl, "types"): wsdl_types,
         }
-wsdl_types._special_states = {
+wsdl_types._special_states = { #type: ignore[misc]
         }
 #wsdl_types._default_state = _to_ElementTree
-wsdl_binding._special_states = {
+wsdl_binding._special_states = { #type: ignore[misc]
         (_ns_wsdl, "operation"): wsdl_bindingOperation,
         (_ns_wsdl, "fault"): wsdl_bindingFault,
         }
 
-wsdl_interface._special_states = {
+wsdl_interface._special_states = { #type: ignore[misc]
         (_ns_wsdl, "operation"): wsdl_interfaceOperation,
         (_ns_wsdl, "fault"): wsdl_interfaceFault,
         }
 
-wsdl_service._special_states = {
+wsdl_service._special_states = { #type: ignore[misc]
         (_ns_wsdl, "endpoint"): wsdl_endpoint,
         }
 
-wsdl_bindingOperation._special_states = {
+wsdl_bindingOperation._special_states = { #type: ignore[misc]
         (_ns_wsdl, "input"): wsdl_messageReferenceIn,
         (_ns_wsdl, "output"): wsdl_messageReferenceOut,
         (_ns_wsdl, "infault"): wsdl_bindingFaultReferenceIn,
         (_ns_wsdl, "outfault"): wsdl_bindingFaultReferenceOut,
         }
 
-wsdl_interfaceOperation._special_states = {
+wsdl_interfaceOperation._special_states = { #type: ignore[misc]
         (_ns_wsdl, "input"): wsdl_input,
         (_ns_wsdl, "output"): wsdl_output,
         (_ns_wsdl, "infault"): wsdl_infault,
         (_ns_wsdl, "outfault"): wsdl_outfault,
         }
 
-wsdl_service._special_states = {
+wsdl_service._special_states = { #type: ignore[misc]
         (_ns_wsdl, "endpoint"): wsdl_endpoint,
         }
 

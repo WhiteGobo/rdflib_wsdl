@@ -40,18 +40,3 @@ def name2qname(name: str,
     else:
         raise Exception("Broken element name %s" % name)
 
-def extract_namespaces(attrs: Mapping[str, str],
-              defaultNS: Optional[str] = None,
-              ) -> Tuple[Mapping[str, str], str]:
-    """
-    """
-    other_attrs = {}
-    namespaces = {}
-    for key, x in attrs.items():
-        if key.startswith("xmlns:"):
-            namespaces[key[6:]] = x
-        elif key.startswith("xmlns"):
-            defaultNS = x
-        else:
-            other_attrs[key] = x
-    return other_attrs, namespaces, defaultNS

@@ -1,9 +1,18 @@
-from rdflib import Graph, URIRef, BNode, RDF, RDFS, Literal, IdentifiedNode, XSD
+from rdflib import Graph, URIRef, BNode, RDF, RDFS, Literal,\
+        IdentifiedNode, XSD
 from typing import Mapping, Iterable, TypeVar, TypeAlias, Callable, Optional
 from urllib.parse import urlparse, urlunparse
-from ..wsdl_components import Binding, BindingFaultReference, BindingMessageReference, BindingOperation, Description, ElementDeclaration, Endpoint, Interface, InterfaceFault, InterfaceFaultReference, InterfaceMessageReference, InterfaceOperation, Service, TypeDefinition, Extension, _WSDLComponent, MCM_ANY, MCM_NONE, MCM_OTHER, MCM_ELEMENT, BindingFault
-from ..shared import _ns_wsdl, _ns_wsdlx, _ns_wsdlrdf, _ns_wsoap, _ns_whttp, _ns_wrpc, _ns_sawsdl, _ns_xs, WHTTP, WSDL, WSDLX, WSDL_RDF, WSOAP, SAWSDL, name2qname
-from ..shared import MEP_inOnly, MEP_robustInOnly, MEP_inOut, MEP_inOptionalOut,MEP_outOnly, MEP_robustOutOnly, MEP_outIn, MEP_outOptionalIn
+from ..wsdl_components import Binding, BindingFaultReference,\
+        BindingMessageReference, BindingOperation, Description,\
+        ElementDeclaration, Endpoint, Interface, InterfaceFault,\
+        InterfaceFaultReference, InterfaceMessageReference,\
+        InterfaceOperation, Service, TypeDefinition, Extension,\
+        _WSDLComponent, MCM_ANY, MCM_NONE, MCM_OTHER, MCM_ELEMENT, BindingFault
+from ..shared import _ns_wsdl, _ns_wsdlx, _ns_wsdlrdf, _ns_wsoap, _ns_whttp,\
+        _ns_wrpc, _ns_sawsdl, _ns_xs, WHTTP, WSDL, WSDLX, WSDL_RDF, WSOAP,\
+        SAWSDL, name2qname,\
+        MEP_inOnly, MEP_robustInOnly, MEP_inOut, MEP_inOptionalOut,\
+        MEP_outOnly, MEP_robustOutOnly, MEP_outIn, MEP_outOptionalIn
 
 MESSAGECONTENTMODEL2URI = {MCM_ANY: WSDL.AnyContent,
                            MCM_NONE: WSDL.NoContent,
@@ -77,16 +86,20 @@ class extension_parser_data:
 
 class MapperWSDL2RDF:
     @classmethod
-    def create_with_parser_data(cls,
-                 ext_binding: Iterable[WSDLMAPPER[Binding]] = [],
-                 ext_bindingOperation: Iterable[WSDLMAPPER[BindingOperation]] = [],
-                 ext_bindingFault: Iterable[WSDLMAPPER[BindingFault]] = [],
-                 ext_bindingMessageReference: Iterable[WSDLMAPPER[BindingMessageReference]] = [],
-                 ext_bindingFaultReference: Iterable[WSDLMAPPER[BindingFaultReference]] = [],
-                 ext_endpoint: Iterable[WSDLMAPPER[Endpoint]] = [],
-                 ext_interfaceOperation: Iterable[WSDLMAPPER[InterfaceOperation]] = [],
-                 additional_extensions: Iterable[extension_parser_data] = [],
-                 ) -> "MapperWSDL2RDF":
+    def create_with_parser_data(
+            cls,
+            ext_binding: Iterable[WSDLMAPPER[Binding]] = [],
+            ext_bindingOperation: Iterable[WSDLMAPPER[BindingOperation]] = [],
+            ext_bindingFault: Iterable[WSDLMAPPER[BindingFault]] = [],
+            ext_bindingMessageReference:\
+                    Iterable[WSDLMAPPER[BindingMessageReference]] = [],
+            ext_bindingFaultReference:\
+                    Iterable[WSDLMAPPER[BindingFaultReference]] = [],
+            ext_endpoint: Iterable[WSDLMAPPER[Endpoint]] = [],
+            ext_interfaceOperation:\
+                    Iterable[WSDLMAPPER[InterfaceOperation]] = [],
+            additional_extensions: Iterable[extension_parser_data] = [],
+            ) -> "MapperWSDL2RDF":
         """Creates a mapper with packed extensions. Use this for easy
         compliance with available :term:`plugins<parser plugin>`.
         """
@@ -118,15 +131,19 @@ class MapperWSDL2RDF:
                    ext_endpoint, ext_interfaceOperation)
 
 
-    def __init__(self,
-                 ext_binding: Iterable[WSDLMAPPER[Binding]] = [],
-                 ext_bindingOperation: Iterable[WSDLMAPPER[BindingOperation]] = [],
-                 ext_bindingFault: Iterable[WSDLMAPPER[BindingFault]] = [],
-                 ext_bindingMessageReference: Iterable[WSDLMAPPER[BindingMessageReference]] = [],
-                 ext_bindingFaultReference: Iterable[WSDLMAPPER[BindingFaultReference]] = [],
-                 ext_endpoint: Iterable[WSDLMAPPER[Endpoint]] = [],
-                 ext_interfaceOperation: Iterable[WSDLMAPPER[InterfaceOperation]] = []
-                 ):
+    def __init__(
+            self,
+            ext_binding: Iterable[WSDLMAPPER[Binding]] = [],
+            ext_bindingOperation: Iterable[WSDLMAPPER[BindingOperation]] = [],
+            ext_bindingFault: Iterable[WSDLMAPPER[BindingFault]] = [],
+            ext_bindingMessageReference:\
+                    Iterable[WSDLMAPPER[BindingMessageReference]] = [],
+            ext_bindingFaultReference:\
+                    Iterable[WSDLMAPPER[BindingFaultReference]] = [],
+            ext_endpoint: Iterable[WSDLMAPPER[Endpoint]] = [],
+            ext_interfaceOperation:\
+                    Iterable[WSDLMAPPER[InterfaceOperation]] = []
+            ):
         """Register all extensions"""
         self.ext_binding = list(ext_binding)
         self.ext_bindingOperation = list(ext_bindingOperation)
@@ -168,7 +185,8 @@ class MapperWSDL2RDF:
             self._map_interfaceFault(g, interface_fault)
 
     def _map_interfaceOperation(self, g: Graph,
-                                interfaceOperation: InterfaceOperation) -> None:
+                                interfaceOperation: InterfaceOperation,
+                                ) -> None:
         """`https://www.w3.org/TR/wsdl20-rdf/#table2-4`_"""
         elemid = _create_id(interfaceOperation)
         parentid = _create_id(interfaceOperation.parent)
@@ -290,12 +308,12 @@ class MapperWSDL2RDF:
             self, g: Graph,
             bindingMessageReference: BindingMessageReference) -> None:
         """`https://www.w3.org/TR/wsdl20-rdf/#table2-12`_"""
-        elemid = _create_id(bindingMessagetReference)
+        elemid = _create_id(bindingMessageReference)
         parentid = _create_id(bindingMessageReference.parent)
         g.add((elemid, RDF.type, WSDL.BindingMessageReference))
         g.add((parentid, WSDL.bindingMessageReference, elemid))
-
-        imr_id = _create_id(bindingMessageReference.interface_message_reference)
+        imr = bindingMessageReference.interface_message_reference
+        imr_id = _create_id(imr)
         g.add((elemid, WSDL.binds, imr_id))
         for extmap in self.ext_bindingMessageReference:
             extmap(g, bindingMessageReference)
