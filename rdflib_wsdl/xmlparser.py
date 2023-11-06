@@ -88,8 +88,11 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
                                                          namespaces, defaultNS)
 
     def endElement(self, name):
-        self.currentState.close()
-        self.states.pop()
+        if isinstance(self.currentState, _start):
+            raise Exception("Got one xml endelement too much.")
+        else:
+            self.currentState.close()
+            self.states.pop()
 
     def startElementNS(self, name, qname, attrs):
         """Cant implement this with feature Namespaces enabled because

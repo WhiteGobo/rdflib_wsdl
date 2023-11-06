@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 from xml.etree import ElementTree as ET
 from urllib.parse import urlparse, urlunparse
-from . import extensions
 
 from .shared import _ns_wsdl, _ns_wsdlx, _ns_wsdlrdf, _ns_wsoap, _ns_whttp, _ns_wrpc, _ns_sawsdl, _ns_xs, WHTTP, WSDL, WSDLX, WSDL_RDF, WSOAP, SAWSDL
 from .shared import name2qname, extract_namespaces
@@ -152,13 +151,14 @@ class _start(_createnode_mixin, _state):
                    namespaces: Mapping[str, str],
                    default_namespace: str,
                    ) -> "_wsdl_element":
-        nextstate = super().transition(trans, attrs, namespaces, default_namespace)
+        assert self.first_state is None, "Only one rootnode is expected"
+        nextstate = super().transition(trans, attrs, namespaces,
+                                       default_namespace)
         self.first_state = nextstate
         return nextstate
 
     def close(self) -> None:
-        raise Exception("base state cant be closed")
-        return self
+        raise Exception("base state isnt supposed to be closed")
 
 
 class _state_with_axioms(_createnode_mixin, _state):
@@ -304,17 +304,15 @@ class wsdl_typeextension(_to_ElementTree):
     """
     is used in documentation.types as extension for every type
     """
-    convert_function: Callable[[ET.ElementTree], Graph]
-    TRANS2CONVERTFUNCTION = extensions.TYPES_EXTENSIONS
     xml_info: ET.ElementTree
-    rdf_info: Graph
+    trans: Tuple[str, str]
     def __init__(
-            self, trans: [str, str], parentnode: Union["_start", "_state"],
+            self, trans: Tuple[str, str],
+            parentnode: Union["_start", "_state"],
             attrs: Mapping,
             namespaces: Mapping[str, str] = {},
             default_namespace: Optional[str] = None,
             ) -> None:
-        self.convert_function = self.TRANS2CONVERTFUNCTION[trans]
         super().__init__(trans, parentnode, attrs,
                          namespaces, default_namespace)
         self.trans = trans
@@ -328,7 +326,6 @@ class wsdl_typeextension(_to_ElementTree):
     def close(self):
         ret = super().close()
         self.xml_info = ET.ElementTree(self.element)
-        self.rdf_info = self.convert_function(self.xml_info)
         return ret
 
 class wsdl_types(_wsdl_element):
@@ -349,10 +346,6 @@ class wsdl_types(_wsdl_element):
 
 
 class _wsdl_properties(_wsdl_idelement):
-    _fragment_base: str
-    _property_URI: URIRef
-    _type_URI: URIRef
-
     @property
     def sharedReferences(self) -> MutableMapping[str, BNode]:
         return self.parentnode.sharedReferences
@@ -367,9 +360,6 @@ class _wsdl_properties(_wsdl_idelement):
 
 
 class wsdl_interface(_wsdl_properties, Interface):
-    _fragment_base = "wsdl.interface(%s)"
-    _property_URI = WSDL.interface
-    _type_URI = WSDL.Interface
     @property
     def name(self) -> str:
         return self.attrs[(None, "name")]
@@ -398,13 +388,6 @@ class wsdl_interface(_wsdl_properties, Interface):
 
 
 class wsdl_binding(_wsdl_properties, Binding):
-    _fragment_base = "wsdl.binding(%s)"
-    _property_URI = WSDL.binding
-    _type_URI = WSDL.Binding
-    EXTENSIONS = extensions.BINDING_EXTENSIONS
-    """This determines which extensions are used for the binding. Default is
-    the same as extensions.BINDING_EXTENSIONS
-    """
     def get(self, namespace: str, name: str, as_qname: bool=False,
             **kwargs: Any) -> str:
         if kwargs:
@@ -450,9 +433,6 @@ class wsdl_binding(_wsdl_properties, Binding):
 
 
 class wsdl_service(_wsdl_properties, Service):
-    _fragment_base = "wsdl.service(%s)"
-    _property_URI = WSDL.service
-    _type_URI = WSDL.Service
 
     @property
     def endpoints(self) -> Iterable["wsdl_endpoint"]:
@@ -473,10 +453,6 @@ class wsdl_service(_wsdl_properties, Service):
 
 
 class wsdl_bindingFault(_wsdl_properties, BindingFault):
-    _fragment_base = "wsdl.bindingFault(%s)"
-    _property_URI = WSDL.bindingFault
-    _type_URI = WSDL.BindingFault
-    EXTENSIONS = extensions.BINDING_FAULT_EXTENSIONS
     def get(self, namespace: str, name: str, as_qname: bool=False,
             **kwargs: Any) -> str:
         if kwargs:
@@ -521,10 +497,6 @@ class wsdl_bindingFault(_wsdl_properties, BindingFault):
         return name
 
 class wsdl_bindingOperation(_wsdl_properties, BindingOperation):
-    _fragment_base = "wsdl.bindingOperation(%s)"
-    _property_URI = WSDL.bindingOperation
-    _type_URI = WSDL.BindingOperation
-    EXTENSIONS = extensions.BINDING_OPERATION_EXTENSIONS
     def get(self, namespace: str, name: str, as_qname: bool=False,
             **kwargs: Any) -> str:
         if kwargs:
@@ -612,36 +584,29 @@ class wsdl_bindingFaultReference(_wsdl_element, BindingFaultReference):
 class wsdl_messageReferenceIn(_wsdl_properties):
     """More information in `https://www.w3.org/TR/wsdl/#Binding_Message_Reference_XMLRep`_
     """
-    EXTENSIONS = extensions.MESSAGE_REFERENCE_EXTENSIONS
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
 class wsdl_messageReferenceOut(_wsdl_properties):
     """More information in `https://www.w3.org/TR/wsdl/#Binding_Message_Reference_XMLRep`_
     """
-    EXTENSIONS = extensions.MESSAGE_REFERENCE_EXTENSIONS
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
 class wsdl_bindingFaultReferenceIn(wsdl_bindingFaultReference):
     """More information in `https://www.w3.org/TR/wsdl/#Binding_Fault_Reference`_
     """
-    EXTENSIONS = extensions.MESSAGE_FAULT_EXTENSIONS
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
 class wsdl_bindingFaultReferenceOut(wsdl_bindingFaultReference):
     """More information in `https://www.w3.org/TR/wsdl/#Binding_Fault_Reference`_
     """
-    EXTENSIONS = extensions.MESSAGE_FAULT_EXTENSIONS
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
 
 class wsdl_interfaceFault(_wsdl_properties, InterfaceFault):
-    _fragment_base = "wsdl.interfaceFault(%s)"
-    _property_URI = WSDL.interfaceFault
-    _type_URI = WSDL.InterfaceFault
 
     @property
     def message_content_model(self) -> str:
@@ -690,9 +655,6 @@ class wsdl_interfaceFault(_wsdl_properties, InterfaceFault):
         return self.attrs[(None, "name")]
 
 class wsdl_interfaceOperation(_wsdl_properties, InterfaceOperation):
-    _fragment_base = "wsdl.interfaceOperation(%s)"
-    _property_URI = WSDL.interfaceOperation
-    _type_URI = WSDL.InterfaceOperation
     input: Optional["wsdl_input"]
     output: Optional["wsdl_output"]
 
@@ -758,11 +720,6 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
     """:term:`wsdl endpoint`
     For more information see `https://www.w3.org/TR/wsdl/#Endpoint`_
     """
-    _fragment_base = "wsdl.endpoint(%s)"
-    _property_URI = WSDL.endpoint
-    _type_URI = WSDL.Endpoint
-    EXTENSIONS = extensions.ENDPOINT_EXTENSIONS
-
     def get(self, namespace: str, name: str, as_qname: bool=False,
             **kwargs: Any) -> str:
         if kwargs:
@@ -826,9 +783,6 @@ class _wsdl_interfaceReference(_wsdl_properties):
 
 
 class _wsdl_interfaceMessageReference(_wsdl_interfaceReference, InterfaceMessageReference):
-    _fragment_base = "wsdl.interfaceMessageReference(%s)"
-    _property_URI = WSDL.interfaceMessageReference
-    _type_URI = WSDL.InterfaceMessageReference
 
     @property
     def element_declaration(self) -> Tuple[str, str]:
@@ -900,9 +854,6 @@ class wsdl_output(_wsdl_interfaceMessageReference):
 
 #class _wsdl_interfaceFaultReference(_wsdl_interfaceReference):
 class _wsdl_interfaceFaultReference(_wsdl_properties, InterfaceFaultReference):
-    _fragment_base = "wsdl.interfaceFaultReference(%s)"
-    _property_URI = WSDL.interfaceFaultReference
-    _type_URI = WSDL.InterfaceFaultReference
 
     @property
     def interface(self) -> str:
