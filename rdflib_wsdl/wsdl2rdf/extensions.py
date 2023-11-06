@@ -1,10 +1,27 @@
 from rdflib import Graph, URIRef, BNode, RDF, RDFS, Literal, IdentifiedNode, XSD
-from typing import Mapping, Iterable, TypeVar, TypeAlias, Callable
+from typing import Mapping, Iterable, TypeVar, TypeAlias, Callable, Optional
 from urllib.parse import urlparse, urlunparse
 from ..wsdl_components import Binding, BindingFaultReference, BindingMessageReference, BindingOperation, Description, ElementDeclaration, Endpoint, Interface, InterfaceFault, InterfaceFaultReference, InterfaceMessageReference, InterfaceOperation, Service, TypeDefinition, Extension, _WSDLComponent, MCM_ANY, MCM_NONE, MCM_OTHER, MCM_ELEMENT, BindingFault
 from ..shared import _ns_wsdl, _ns_wsdlx, _ns_wsdlrdf, _ns_wsoap, _ns_whttp, _ns_wrpc, _ns_sawsdl, _ns_xs, WHTTP, WSDL, WSDLX, WSDL_RDF, WSOAP, SAWSDL, name2qname
 from ..shared import MEP_inOnly, MEP_robustInOnly, MEP_inOut, MEP_inOptionalOut,MEP_outOnly, MEP_robustOutOnly, MEP_outIn, MEP_outOptionalIn
-from .class_MapperWSDL2RDF import MESSAGECONTENTMODEL2URI, _create_id, _qname2id, _messageLabel2URI, _qname2rdfframes, WSDLMAPPER
+from .class_MapperWSDL2RDF import MESSAGECONTENTMODEL2URI, _create_id, _qname2id, _messageLabel2URI, _qname2rdfframes, WSDLMAPPER, extension_parser_data
+from dataclasses import dataclass, field
+
+@dataclass
+class parser(extension_parser_data):
+    binding: Optional[WSDLMAPPER[Binding]] = field(default=None)
+    bindingOperation: Optional[WSDLMAPPER[BindingOperation]]\
+             = field(default=None)
+    bindingFault: Optional[WSDLMAPPER[BindingFault]]\
+             = field(default=None)
+    bindingMessageReference: Optional[WSDLMAPPER[BindingMessageReference]]\
+             = field(default=None)
+    bindingFaultReference: Optional[WSDLMAPPER[BindingFaultReference]]\
+             = field(default=None)
+    endpoint: Optional[WSDLMAPPER[Endpoint]] = field(default=None)
+    interfaceOperation: Optional[WSDLMAPPER[InterfaceOperation]]\
+             = field(default=None)
+
 
 def _ext_soap_map_binding(g: Graph, binding: Binding) -> None:
     """`https://www.w3.org/TR/wsdl20-rdf/#table2-18`_"""
@@ -115,6 +132,14 @@ def _map_soap_headerBlock(g: Graph, elemid, elem) -> None:
         return
     raise NotImplementedError()
 
+soapExtension = parser(
+        binding = _ext_soap_map_binding,
+        bindingOperation = _ext_soap_map_bindingOperation,
+        bindingFault = _ext_soap_map_bindingFault,
+        bindingMessageReference = _ext_soap_map_bindingMessageReference,
+        bindingFaultReference = _ext_soap_map_bindingFaultReference,
+        )
+
 def _ext_http_binding(g: Graph, binding: Binding) -> None:
     """`https://www.w3.org/TR/wsdl20-rdf/#table2-25`_"""
     elemid = _create_id(binding)
@@ -205,7 +230,7 @@ def _ext_http_bindingFault(g: Graph, bindingFault: BindingFault) -> None:
                     "contentEncoding", WHTTP.contentEncoding)
     _map_http_headerBlock(g, elemid, bindingFault)
 
-def _ext_http_bindingMessageReference(g: Graph, bindingMessageReference: BindingMessageReference) -> None:
+def _ext_http_map_bindingMessageReference(g: Graph, bindingMessageReference: BindingMessageReference) -> None:
     """`https://www.w3.org/TR/wsdl20-rdf/#table2-28`_"""
     elemid = _create_id(bindingMessageReference)
     _add_as_literal(g, bindingFault, elemid, _ns_whttp,
@@ -257,7 +282,15 @@ def _ext_sawsdl_interfaceOperation(g: Graph, interfaceOperation: InterfaceOperat
             elemid = _create_id(interfaceOperation)
             g.add((elemid, SAWSDL.modelReference, WSDLX.SafeInteraction))
 
+httpExtension = parser(
+        binding = _ext_http_binding,
+        bindingOperation = _ext_http_bindingOperation,
+        bindingFault = _ext_http_bindingFault,
+        bindingMessageReference = _ext_http_map_bindingMessageReference,
+        endpoint = _ext_http_endpoint,
+        )
 
+sawsdlExtension = parser(interfaceOperation = _ext_sawsdl_interfaceOperation)
 
 default_extensions_binding = [
         _ext_soap_map_binding,
@@ -273,7 +306,7 @@ default_extensions_bindingFault = [
         ]
 default_extensions_bindingMessageReference = [
         _ext_soap_map_bindingMessageReference,
-        _ext_http_bindingMessageReference,
+        _ext_http_map_bindingMessageReference,
         ]
 default_extensions_bindingFaultReference = [
         _ext_soap_map_bindingFaultReference,

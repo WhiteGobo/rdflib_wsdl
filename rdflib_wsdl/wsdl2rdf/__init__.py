@@ -1,16 +1,26 @@
-from .class_MapperWSDL2RDF import MapperWSDL2RDF
-from .extensions import *
+import sys
+if sys.version_info < (3, 10):
+    from importlib_metadata import entry_points
+else:
+    from importlib.metadata import entry_points
+from .class_MapperWSDL2RDF import MapperWSDL2RDF, extension_parser_data
+from .extensions import parser, default_extensions_binding,default_extensions_bindingOperation, default_extensions_bindingFault, default_extensions_bindingMessageReference, default_extensions_bindingFaultReference, default_extensions_endpoint, default_extension_interfaceOperation
+from .extensions import parser, sawsdlExtension, httpExtension, soapExtension
 
-basicGenerateRDF = MapperWSDL2RDF(
-        ext_binding = default_extensions_binding,
-        ext_bindingOperation = default_extensions_bindingOperation,
-        ext_bindingFault = default_extensions_bindingFault,
-        ext_bindingMessageReference=default_extensions_bindingMessageReference,
-        ext_bindingFaultReference = default_extensions_bindingFaultReference,
-        ext_endpoint = default_extensions_endpoint,
-        ext_interfaceOperation = default_extension_interfaceOperation,
+additional_parser: extension_parser_data = entry_points(group='rdflib_wsdl.extensions.parser')
+"""All available additional parsers specified by
+entrypoint 'rdflib_wsdl.extensions.parser'. See parser for more information.
+"""
+all_parser = [sawsdlExtension, httpExtension, soapExtension,
+              *additional_parser]
+
+basicGenerateRDF = MapperWSDL2RDF.create_with_parser_data(
+        additional_extensions = [sawsdlExtension, httpExtension, soapExtension]
         )
 """Basic wsdl to rdf transform with only builtin plugins enabled"""
 
-generateRDF = basicGenerateRDF
-"""WSDL to RDF transform with all found :term:`plugins<WSDL plugin>` enabled."""
+generateRDF = MapperWSDL2RDF.create_with_parser_data(
+        additional_extensions = all_parser,
+        )
+"""WSDL to RDF transform with all found :term:`plugins<WSDL plugin>` enabled.
+"""
