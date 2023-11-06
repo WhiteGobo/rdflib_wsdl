@@ -31,7 +31,7 @@ ENDPOINT_EXTENSIONS:\
                                      Graph]] = {}
 """All extensions for :term:`wsdl endpoint`"""
 
-from ..shared import _ns_wsoap, name2qname, WSOAP, qname2rdfframes
+from ..shared import _ns_wsoap, name2qname, WSOAP
 
 def extension_WSDL_SOAP_Binding(
         bindingNode: IdentifiedNode,

@@ -55,15 +55,3 @@ def extract_namespaces(attrs: Mapping[str, str],
         else:
             other_attrs[key] = x
     return other_attrs, namespaces, defaultNS
-
-def qname2rdfframes(elem: str,
-                    namespaces: Mapping[str, str],
-                    default_namespace: str,
-                    ) -> Iterable:
-    """
-    Described in `https://www.w3.org/TR/wsdl20-rdf/#interface`_ Table 2-2
-    """
-    namespace, local_name = name2qname(elem, default_namespace, namespaces)
-    yield RDF.type, WSDL.QName
-    yield WSDL.localName, Literal(local_name)
-    yield WSDL.namespace, URIRef(namespace)

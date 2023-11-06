@@ -370,11 +370,11 @@ class InterfaceFaultReference(_WSDLComponent):
 
     @property
     def fragment_identifier(self) -> str:
-        return "wsdl.InterfaceFaultReference(%s/%s/%s/%s)" % (
+        return "wsdl.interfaceFaultReference(%s/%s/%s/%s)" % (
                 self.interface.name,
                 self.parent.name,
                 self.message_label,
-                self.interface_fault.name,
+                self.name,
                 )
 
 class InterfaceMessageReference(_WSDLComponent):

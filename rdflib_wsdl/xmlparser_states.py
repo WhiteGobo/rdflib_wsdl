@@ -17,7 +17,7 @@ from urllib.parse import urlparse, urlunparse
 from . import extensions
 
 from .shared import _ns_wsdl, _ns_wsdlx, _ns_wsdlrdf, _ns_wsoap, _ns_whttp, _ns_wrpc, _ns_sawsdl, _ns_xs, WHTTP, WSDL, WSDLX, WSDL_RDF, WSOAP, SAWSDL
-from .shared import name2qname, extract_namespaces, qname2rdfframes
+from .shared import name2qname, extract_namespaces
 
 from .wsdl_components import Binding, BindingFaultReference, BindingMessageReference, BindingOperation, Description, ElementDeclaration, Endpoint, Interface, InterfaceFault, InterfaceFaultReference, InterfaceMessageReference, InterfaceOperation, Service, TypeDefinition, Extension, BindingFault, MCM_ANY, MCM_NONE, MCM_OTHER, MCM_ELEMENT
 
@@ -25,8 +25,6 @@ from .wsdl_components import Binding, BindingFaultReference, BindingMessageRefer
 
 class UnexpectedNodetype(KeyError):
     """Is raised if an unexpected nodename is found in xmlfile"""
-
-
 
 class _createnode_mixin:
     """This class specifies how transition between different levels
@@ -46,7 +44,6 @@ class _createnode_mixin:
         #kwargs = {"parentnode":self, "attrs":attrs, "typeof":trans}
         state_gen = self._special_states.get(trans, self._default_state)
         if state_gen is None:
-            raise Exception(self._default_state, self._special_states, trans, type(self))
             raise UnexpectedNodetype(trans, type(self), self._special_states)
         #if trans not in _RIF:
         #    raise BadSyntax("Found for Rif unsupported predicate %s" % trans)
@@ -141,11 +138,11 @@ class _start(_createnode_mixin, _state):
     default_namespace = None
     namespaces = {}
     first_state: Optional["_wsdl_element"]
+    namespace_base = "http://schemas.xmlsoap.org/wsdl/"
     def __init__(self) -> None:
         self.first_state = None
         self.axioms = rdflib.Graph()
         self._buffer = []
-        self.namespace_base = "http://schemas.xmlsoap.org/wsdl/"
 
     def finalize(self):
         return self.axioms
@@ -160,7 +157,7 @@ class _start(_createnode_mixin, _state):
         return nextstate
 
     def close(self) -> None:
-        raise Exception("base state can be closed")
+        raise Exception("base state cant be closed")
         return self
 
 
@@ -206,8 +203,7 @@ class _state_with_axioms(_createnode_mixin, _state):
                               self.parentnode.get_targetNamespace)
 
     def close(self) -> None:
-        for ax in self.axioms:
-            self.parentnode.axioms.add(ax)
+        return
 
 class _wsdl_element(_state_with_axioms):
     targetNamespace: str
@@ -238,38 +234,6 @@ class _wsdl_element(_state_with_axioms):
 
 
 class _wsdl_idelement(_wsdl_element):
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-        myid = self.wsdlIRIReference
-        for prop, obj in self._additional_frames():
-            self.axioms.add((myid, prop, obj))
-
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        """Implements this if the class adds additional axioms"""
-        return []
-
-    @property
-    @abc.abstractmethod
-    def sharedReferences(self) -> MutableMapping[str, BNode]: ...
-
-    def get_wsdlIRIReference(self, fragment_identifier=None,) -> URIRef:
-        """Described in `http://www.w3.org/TR/wsdl20/#wsdl-iri-references`_
-        :term:`Fragment Identifiers` can be viewed in `https://www.w3.org/TR/wsdl/#frag-ids`_
-        """
-        q = urlparse(self.targetNamespace)
-        if fragment_identifier is None:
-            fragment_identifier = self.fragment_identifier
-        return URIRef(urlunparse(q._replace(fragment = fragment_identifier)))
-    wsdlIRIReference = property(fget=get_wsdlIRIReference)
-
-    @property
-    @abc.abstractmethod
-    def fragment_identifier(self) -> str: ...
 
     @property
     @abc.abstractmethod
@@ -278,18 +242,6 @@ class _wsdl_idelement(_wsdl_element):
 class wsdl_description(_wsdl_idelement, Description):
     """`https://www.w3.org/TR/wsdl/#Description`_"""
     name = None
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-        self.axioms.add((self.wsdlIRIReference,
-                         RDF.type,
-                         WSDL.Description))
-        self._sharedReferences = {}
-
     @property
     def bindings(self) -> Iterable["wsdl_binding"]:
         return [x for x in self.child_nodes if isinstance(x, wsdl_binding)]
@@ -326,10 +278,6 @@ class wsdl_description(_wsdl_idelement, Description):
     @property
     def sharedReferences(self) -> MutableMapping[str, BNode]:
         return self._sharedReferences
-
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.description()"
 
     @property
     def targetNamespace(self) -> str:
@@ -404,29 +352,10 @@ class _wsdl_properties(_wsdl_idelement):
     _fragment_base: str
     _property_URI: URIRef
     _type_URI: URIRef
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-        myid = self.wsdlIRIReference
-        newaxioms = [
-                (myid, RDF.type, self._type_URI),
-                (self.parentnode.wsdlIRIReference, self._property_URI, myid),
-                ]
-        for ax in newaxioms:
-            self.axioms.add(ax)
 
     @property
     def sharedReferences(self) -> MutableMapping[str, BNode]:
         return self.parentnode.sharedReferences
-
-    @property
-    def fragment_identifier(self) -> str:
-        """default"""
-        return self._fragment_base % self.name
 
     @property
     def targetNamespace(self) -> str:
@@ -441,9 +370,6 @@ class wsdl_interface(_wsdl_properties, Interface):
     _fragment_base = "wsdl.interface(%s)"
     _property_URI = WSDL.interface
     _type_URI = WSDL.Interface
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        yield RDFS.label, Literal(self.name)
-
     @property
     def name(self) -> str:
         return self.attrs[(None, "name")]
@@ -501,39 +427,6 @@ class wsdl_binding(_wsdl_properties, Binding):
         return (x for x in self.child_nodes
                 if isinstance(x, wsdl_bindingOperation))
 
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-
-        #yield WHTTP.defaultQueryParameterSeparator, Literal("&")
-        myid = self.wsdlIRIReference
-        namespace2annotation = get_namespaces_with_annotations(self.attrs)
-        for ns, anno in namespace2annotation.items():
-            try:
-                ext = self.EXTENSIONS[ns]
-            except KeyError:
-                pass
-            else:
-                for ax in ext(myid, anno, self.namespaces, default_namespace):
-                    self.axioms.add(ax)
-
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDFS.label, Literal(self.name)
-        yield RDF.type, URIRef(self.type)
-
-        #interf_ns, interf_name = name2qname(self.interface,
-        #                                    self.default_namespace,
-        #                                    self.namespaces)
-        #p = urlparse(interf_ns)._replace(fragment="wsdl.interface(%s)"
-        #                                 % (interf_name))
-        #yield WSDL.binds, URIRef(urlunparse(p))
-
 
     def get_extensionData(self) -> Mapping[(str, str), str]:
         return {key: x for key, x in self.attrs.items()
@@ -560,14 +453,6 @@ class wsdl_service(_wsdl_properties, Service):
     _fragment_base = "wsdl.service(%s)"
     _property_URI = WSDL.service
     _type_URI = WSDL.Service
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        return
-        for x in super()._additional_frames():
-            yield x
-        yield RDFS.label, Literal(self.name)
-        ns, name = self.interface
-        p = urlparse(ns)._replace(fragment="wsdl.interface(%s)" % name)
-        yield WSDL.implements, URIRef(urlunparse(p))
 
     @property
     def endpoints(self) -> Iterable["wsdl_endpoint"]:
@@ -605,33 +490,6 @@ class wsdl_bindingFault(_wsdl_properties, BindingFault):
             return name2qname(q, self.default_namespace, self.namespaces)
         return q
 
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-        myid = self.wsdlIRIReference
-        namespace2annotation = get_namespaces_with_annotations(self.attrs)
-        for ns, anno in namespace2annotation.items():
-            try:
-                ext = self.EXTENSIONS[ns]
-            except KeyError:
-                pass
-            else:
-                for ax in ext(myid, anno, self.namespaces, default_namespace):
-                    self.axioms.add(ax)
-
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        return
-        for x in super()._additional_frames():
-            yield x
-        interface_ns, interface_name = name2qname(self.interface, self.default_namespace, self.namespaces)
-        fault_ns, fault_name = name2qname(self.ref, self.default_namespace, self.namespaces)
-        #assert interface_ns == fault_ns
-        p = urlparse(interface_ns)._replace(fragment="wsdl.interfaceFault(%s/%s)" % (interface_name, fault_name))
-        yield WSDL.binds, URIRef(urlunparse(p))
 
     @property
     def interface_fault(self) -> "wsdl_interfaceFault":
@@ -661,10 +519,6 @@ class wsdl_bindingFault(_wsdl_properties, BindingFault):
         ns, name = name2qname(self.attrs[(None, "ref")],
                               self.default_namespace, self.namespaces)
         return name
-
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.bindingFault(%s/%s)" % (self.bindingName, self.name)
 
 class wsdl_bindingOperation(_wsdl_properties, BindingOperation):
     _fragment_base = "wsdl.bindingOperation(%s)"
@@ -702,38 +556,6 @@ class wsdl_bindingOperation(_wsdl_properties, BindingOperation):
                                       self.namespaces)
         return self.parent.parent.get_interfaceOperation(ref_ns, ref_name)
 
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-        myid = self.wsdlIRIReference
-        namespace2annotation = get_namespaces_with_annotations(self.attrs)
-        for ns, anno in namespace2annotation.items():
-            try:
-                ext = self.EXTENSIONS[ns]
-            except KeyError:
-                pass
-            else:
-                for ax in ext(myid, anno, self.namespaces, default_namespace):
-                    self.axioms.add(ax)
-
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        return
-        for x in super()._additional_frames():
-            yield x
-        #yield RDFS.label, Literal(self.name)
-        #elem = self.sharedReferences.setdefault(self.element, BNode())
-        #yield WSDL.elementDeclaration, elem
-        #yield WSDL.messageContentModel, WSDL.ElementContent
-        interface_ns, interface_name = name2qname(self.interface, self.default_namespace, self.namespaces)
-        fault_ns, fault_name = name2qname(self.ref, self.default_namespace, self.namespaces)
-        #assert interface_ns == fault_ns
-        p = urlparse(interface_ns)._replace(fragment="wsdl.interfaceOperation(%s/%s)" % (interface_name, fault_name))
-        yield WSDL.binds, URIRef(urlunparse(p))
-
     @property
     def interface(self) -> str:
         return self.parentnode.interface
@@ -755,10 +577,6 @@ class wsdl_bindingOperation(_wsdl_properties, BindingOperation):
         ns, name = name2qname(self.attrs[(None, "ref")],
                               self.default_namespace, self.namespaces)
         return name
-
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.bindingOperation(%s/%s)" % (self.bindingName, self.name)
 
 class wsdl_bindingMessageReference(_wsdl_element, BindingMessageReference):
     def get(self, namespace: str, name: str, as_qname: bool=False,
@@ -824,15 +642,6 @@ class wsdl_interfaceFault(_wsdl_properties, InterfaceFault):
     _fragment_base = "wsdl.interfaceFault(%s)"
     _property_URI = WSDL.interfaceFault
     _type_URI = WSDL.InterfaceFault
-    def __init__(self, *args, **kwargs):
-        """
-        :TODO: remove qname2rdffranes from here.
-        """
-        super().__init__(*args, **kwargs)
-        elem = self.sharedReferences.setdefault(self.element, BNode())
-        for pred, obj in qname2rdfframes(self.element, self.namespaces,
-                                         self.default_namespace):
-            self.axioms.add((elem, pred, obj))
 
     @property
     def message_content_model(self) -> str:
@@ -863,13 +672,6 @@ class wsdl_interfaceFault(_wsdl_properties, InterfaceFault):
             raise AttributeError("No element declaration") from err
         return elem_ns, elem_name
 
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDFS.label, Literal(self.name)
-        elem = self.sharedReferences.setdefault(self.element, BNode())
-        yield WSDL.elementDeclaration, elem
-        yield WSDL.messageContentModel, WSDL.ElementContent
 
     @property
     def element(self) -> str:
@@ -887,27 +689,12 @@ class wsdl_interfaceFault(_wsdl_properties, InterfaceFault):
     def name(self) -> str:
         return self.attrs[(None, "name")]
 
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.interfaceFault(%s/%s)" % (self.interfaceName, self.name)
-
 class wsdl_interfaceOperation(_wsdl_properties, InterfaceOperation):
     _fragment_base = "wsdl.interfaceOperation(%s)"
     _property_URI = WSDL.interfaceOperation
     _type_URI = WSDL.InterfaceOperation
     input: Optional["wsdl_input"]
     output: Optional["wsdl_output"]
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDFS.label, Literal(self.name)
-        if self.attrs[(_ns_wsdlx, "safe")]:
-            yield SAWSDL.modelReference, WSDLX.SafeInteraction
-        else:
-            raise NotImplementedError()
-        yield WSDL.messageExchangePattern, URIRef(self.message_exchange_pattern)
-        for style in self.style:
-            yield WSDL_RDF.operationStyle, URIRef(style)
 
     def get(self, namespace: str, name: str, as_qname: bool=False,
             **kwargs: Any) -> str:
@@ -966,9 +753,6 @@ class wsdl_interfaceOperation(_wsdl_properties, InterfaceOperation):
     def name(self) -> str:
         return self.attrs[(None, "name")]
 
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.interfaceOperation(%s/%s)" % (self.interfaceName, self.name)
 
 class wsdl_endpoint(_wsdl_properties, Endpoint):
     """:term:`wsdl endpoint`
@@ -978,26 +762,6 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
     _property_URI = WSDL.endpoint
     _type_URI = WSDL.Endpoint
     EXTENSIONS = extensions.ENDPOINT_EXTENSIONS
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-
-        #yield WHTTP.defaultQueryParameterSeparator, Literal("&")
-        myid = self.wsdlIRIReference
-        namespace2annotation = get_namespaces_with_annotations(self.attrs)
-        for ns, anno in namespace2annotation.items():
-            try:
-                ext = self.EXTENSIONS[ns]
-            except KeyError:
-                logger.debug("Found data for '%s' but no corresponding "
-                             "extension was found for %s" % (ns, type(self)))
-            else:
-                for ax in ext(myid, anno, self.namespaces, default_namespace):
-                    self.axioms.add(ax)
 
     def get(self, namespace: str, name: str, as_qname: bool=False,
             **kwargs: Any) -> str:
@@ -1012,16 +776,6 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
             return name2qname(q, self.default_namespace, self.namespaces)
         return q
 
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDFS.label, Literal(self.name)
-        yield WSDL.address, URIRef(self.address)
-        fake_fragment = "wsdl.binding(%s)" % (self.binding)
-        fake_reference = self.get_wsdlIRIReference(
-                fragment_identifier=fake_fragment,
-                )
-        yield WSDL.usesBinding, fake_reference
 
     @property
     def binding(self) -> str:
@@ -1042,9 +796,6 @@ class wsdl_endpoint(_wsdl_properties, Endpoint):
     def name(self) -> str:
         return self.attrs[(None, "name")]
 
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.endpoint(%s/%s)" % (self.service.name, self.name)
 
 class _wsdl_interfaceReference(_wsdl_properties):
     contentmodel: str
@@ -1057,10 +808,6 @@ class _wsdl_interfaceReference(_wsdl_properties):
         super().__init__(trans, parentnode, attrs, namespaces,
                          default_namespace)
 
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield WSDL.messageContentModel, self.contentModel
 
     @property
     def contentModel(self) -> URIRef:
@@ -1134,35 +881,10 @@ class _wsdl_interfaceMessageReference(_wsdl_interfaceReference, InterfaceMessage
     def name(self) -> str:
         return self.attrs[(None, "messageLabel")]
 
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.interfaceMessageReference(%s/%s/%s)"\
-                % (self.interface.name, self.operation.name, self.name)
 
 class wsdl_input(_wsdl_interfaceMessageReference):
     @property
     def direction(self) -> str: return "in"
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-        self.parentnode.input = self
-        elem = self.sharedReferences.setdefault(self.element, BNode())
-        for pred, obj in qname2rdfframes(self.element, self.namespaces,
-                                         self.default_namespace):
-            self.axioms.add((elem, pred, obj))
-
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDF.type, WSDL.InputMessage
-        p = urlparse(self.parentnode.message_exchange_pattern)._replace(fragment=self.name)
-        yield WSDL.messageLabel, URIRef(urlunparse(p))
-        elem = self.sharedReferences.setdefault(self.element, BNode())
-        yield WSDL.elementDeclaration, elem
 
     @property
     def element(self) -> str:
@@ -1171,27 +893,6 @@ class wsdl_input(_wsdl_interfaceMessageReference):
 class wsdl_output(_wsdl_interfaceMessageReference):
     @property
     def direction(self) -> str: return "out"
-    def __init__(self, trans: str, parentnode: Union["_start", "_state"],
-                 attrs: Mapping,
-                 namespaces: Mapping[str, str] = {},
-                 default_namespace: Optional[str] = None,
-                 ) -> None:
-        super().__init__(trans, parentnode, attrs,
-                         namespaces, default_namespace)
-        self.parentnode.output = self
-        elem = self.sharedReferences.setdefault(self.element, BNode())
-        for pred, obj in qname2rdfframes(self.element, self.namespaces,
-                                         self.default_namespace):
-            self.axioms.add((elem, pred, obj))
-
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDF.type, WSDL.OutputMessage
-        p = urlparse(self.parentnode.message_exchange_pattern)._replace(fragment=self.name)
-        yield WSDL.messageLabel, URIRef(urlunparse(p))
-        elem = self.sharedReferences.setdefault(self.element, BNode())
-        yield WSDL.elementDeclaration, elem
 
     @property
     def element(self) -> str:
@@ -1221,12 +922,6 @@ class _wsdl_interfaceFaultReference(_wsdl_properties, InterfaceFaultReference):
     def message_label(self) -> str:
         return self.attrs[(None, "messageLabel")]
 
-    @property
-    def fragment_identifier(self) -> str:
-        return "wsdl.interfaceFaultReference(%s/%s/%s/%s)"\
-                % (self.interface.name, self.operation.name,
-                   self.message_label, self.name)
-
 class wsdl_infault(_wsdl_interfaceFaultReference):
     @property
     def interface_fault(self):
@@ -1238,20 +933,10 @@ class wsdl_infault(_wsdl_interfaceFaultReference):
     def direction(self) -> str:
         return "in"
 
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDF.type, WSDL.OutputMessage
-        messageLabel = self.attrs[(None, "messageLabel")]
-        p = urlparse(self.parentnode.message_exchange_pattern)._replace(fragment=messageLabel)
-        yield WSDL.messageLabel, URIRef(urlunparse(p))
-        fake_fragment = "wsdl.interfaceFault(%s/%s)" % (self.interface.name, self.name)
-        fake_reference = self.get_wsdlIRIReference(fake_fragment)
-        yield WSDL.interfaceFault, fake_reference
-
     @property
     def message(self) -> Optional[wsdl_output]:
         return self.operation.output
+
 
 class wsdl_outfault(_wsdl_interfaceFaultReference):
     @property
@@ -1266,24 +951,16 @@ class wsdl_outfault(_wsdl_interfaceFaultReference):
     def direction(self) -> str:
         return "out"
 
-    def _additional_frames(self) -> Iterable[URIRef | Literal]:
-        for x in super()._additional_frames():
-            yield x
-        yield RDF.type, WSDL.OutputMessage
-        messageLabel = self.attrs[(None, "messageLabel")]
-        p = urlparse(self.parentnode.message_exchange_pattern)._replace(fragment=messageLabel)
-        yield WSDL.messageLabel, URIRef(urlunparse(p))
-        fake_fragment = "wsdl.interfaceFault(%s/%s)" % (self.interface.name, self.name)
-        fake_reference = self.get_wsdlIRIReference(fake_fragment)
-        yield WSDL.interfaceFault, fake_reference
-
     @property
     def message(self) -> Optional[wsdl_output]:
         return self.operation.output
 
+
 class wsdl_fault(_wsdl_element): ...
 
+
 class wsdl_operation(_wsdl_element): ...
+
 
 _start._special_states = {
         (_ns_wsdl, "description"): wsdl_description,
@@ -1332,11 +1009,3 @@ wsdl_service._special_states = {
         (_ns_wsdl, "endpoint"): wsdl_endpoint,
         }
 
-def get_namespaces_with_annotations(attrs: Mapping[Tuple[str, str], str],
-                                    ) -> Mapping[str, Mapping[str, str]]:
-    ns2anno = {}
-    for key, x in attrs.items():
-        ns, attr = key
-        if ns is not None and ns is not _ns_wsdl:
-            ns2anno.setdefault(ns, {})[attr] = x
-    return ns2anno
