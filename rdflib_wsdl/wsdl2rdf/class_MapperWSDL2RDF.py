@@ -114,8 +114,8 @@ class MapperWSDL2RDF:
             if add.interfaceOperation is not None:
                 ext_interfaceOperation.append(add.interfaceOperation)
         return cls(ext_binding, ext_bindingOperation, ext_bindingFault,
-                    ext_bindingMessageReference, ext_bindingFaultReference,
-                    ext_endpoint, ext_interfaceOperation)
+                   ext_bindingMessageReference, ext_bindingFaultReference,
+                   ext_endpoint, ext_interfaceOperation)
 
 
     def __init__(self,

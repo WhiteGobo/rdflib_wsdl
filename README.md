@@ -9,3 +9,15 @@ You can parse wsdl per:
 ```
 	rdflib.Graph().parse("path/to/wsdl.wsdl", format="wsdl")
 ```
+
+
+extensions
+----------
+
+As WSDL is extensible this package supports extensions for parsers (serializer not yet implemented).
+The supported entry points are:
+```
+    'rdflib_wsdl.extensions.parser'
+```
+For further documentation to implement extensions and check all available 
+extensions see `rdflib_wsdl.extensions.parser`
