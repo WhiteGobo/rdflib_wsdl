@@ -398,6 +398,7 @@ class InterfaceMessageReference(_WSDLComponent):
         """
 
     @property
+    @abc.abstractmethod
     def message_content_model(self) -> str:
         """
         See `https://www.w3.org/TR/wsdl/#InterfaceFault`_

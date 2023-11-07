@@ -82,6 +82,12 @@ class extension_parser_data:
     bindingFaultReference: Optional[WSDLMAPPER[BindingFaultReference]]
     endpoint: Optional[WSDLMAPPER[Endpoint]]
     interfaceOperation: Optional[WSDLMAPPER[InterfaceOperation]]
+    service: Optional[WSDLMAPPER[Service]]
+    description: Optional[WSDLMAPPER[Description]]
+    interfaceMessageReference: Optional[WSDLMAPPER[InterfaceMessageReference]]
+    interfaceFaultReference: Optional[WSDLMAPPER[InterfaceFaultReference]]
+    interface: Optional[WSDLMAPPER[Interface]]
+    interfaceFault: Optional[WSDLMAPPER[InterfaceFault]]
 
 
 class MapperWSDL2RDF:
@@ -98,11 +104,25 @@ class MapperWSDL2RDF:
             ext_endpoint: Iterable[WSDLMAPPER[Endpoint]] = [],
             ext_interfaceOperation:\
                     Iterable[WSDLMAPPER[InterfaceOperation]] = [],
+            ext_interfaceMessageReference:\
+                    Iterable[WSDLMAPPER[InterfaceMessageReference]] = [],
+            ext_interfaceFaultReference:\
+                    Iterable[WSDLMAPPER[InterfaceFaultReference]] = [],
+            ext_service: Iterable[WSDLMAPPER[Service]] = [],
+            ext_description:\
+                    Iterable[WSDLMAPPER[Description]] = [],
+            ext_interfaceFault:\
+                    Iterable[WSDLMAPPER[InterfaceFault]] = [],
             additional_extensions: Iterable[extension_parser_data] = [],
             ) -> "MapperWSDL2RDF":
         """Creates a mapper with packed extensions. Use this for easy
         compliance with available :term:`plugins<parser plugin>`.
         """
+        ext_description = list(ext_description)
+        ext_interfaceMessageReference = list(ext_interfaceMessageReference)
+        ext_interfaceFaultReference = list(ext_interfaceFaultReference)
+        ext_interfaceFault = list(ext_interfaceFault)
+        ext_service = list(ext_service)
         ext_binding = list(ext_binding)
         ext_bindingOperation = list(ext_bindingOperation)
         ext_bindingFault = list(ext_bindingFault)
@@ -111,6 +131,16 @@ class MapperWSDL2RDF:
         ext_endpoint = list(ext_endpoint)
         ext_interfaceOperation = list(ext_interfaceOperation)
         for add in additional_extensions:
+            if add.description is not None:
+                ext_description.append(add.description)
+            if add.interfaceMessageReference is not None:
+                ext_interfaceMessageReference.append(add.interfaceMessageReference)
+            if add.interfaceFaultReference is not None:
+                ext_interfaceFaultReference.append(add.interfaceFaultReference)
+            if add.interfaceFault is not None:
+                ext_interfaceFault.append(add.interfaceFault)
+            if add.service is not None:
+                ext_service.append(add.service)
             if add.binding is not None:
                 ext_binding.append(add.binding)
             if add.bindingOperation is not None:
@@ -126,9 +156,20 @@ class MapperWSDL2RDF:
                 ext_endpoint.append(add.endpoint)
             if add.interfaceOperation is not None:
                 ext_interfaceOperation.append(add.interfaceOperation)
-        return cls(ext_binding, ext_bindingOperation, ext_bindingFault,
-                   ext_bindingMessageReference, ext_bindingFaultReference,
-                   ext_endpoint, ext_interfaceOperation)
+        return cls(
+                ext_binding = ext_binding,
+                ext_bindingOperation = ext_bindingOperation,
+                ext_bindingFault = ext_bindingFault,
+                ext_bindingMessageReference = ext_bindingMessageReference,
+                ext_bindingFaultReference = ext_bindingFaultReference,
+                ext_endpoint = ext_endpoint,
+                ext_interfaceOperation = ext_interfaceOperation,
+                ext_service=ext_service,
+                ext_interfaceFaultReference = ext_interfaceFaultReference,
+                ext_interfaceMessageReference = ext_interfaceMessageReference,
+                ext_description = ext_description,
+                ext_interfaceFault = ext_interfaceFault,
+                )
 
 
     def __init__(
@@ -142,9 +183,23 @@ class MapperWSDL2RDF:
                     Iterable[WSDLMAPPER[BindingFaultReference]] = [],
             ext_endpoint: Iterable[WSDLMAPPER[Endpoint]] = [],
             ext_interfaceOperation:\
-                    Iterable[WSDLMAPPER[InterfaceOperation]] = []
+                    Iterable[WSDLMAPPER[InterfaceOperation]] = [],
+            ext_interfaceMessageReference:\
+                    Iterable[WSDLMAPPER[InterfaceMessageReference]] = [],
+            ext_interfaceFaultReference:\
+                    Iterable[WSDLMAPPER[InterfaceFaultReference]] = [],
+            ext_service: Iterable[WSDLMAPPER[Service]] = [],
+            ext_description:\
+                    Iterable[WSDLMAPPER[Description]] = [],
+            ext_interfaceFault:\
+                    Iterable[WSDLMAPPER[InterfaceFault]] = [],
             ):
         """Register all extensions"""
+        self.ext_description = list(ext_description)
+        self.ext_interfaceMessageReference = list(ext_interfaceMessageReference)
+        self.ext_interfaceFaultReference = list(ext_interfaceFaultReference)
+        self.ext_interfaceFault = list(ext_interfaceFault)
+        self.ext_service = list(ext_service)
         self.ext_binding = list(ext_binding)
         self.ext_bindingOperation = list(ext_bindingOperation)
         self.ext_bindingFault = list(ext_bindingFault)
@@ -168,6 +223,8 @@ class MapperWSDL2RDF:
             self._map_binding(g, binding)
         for service in description.services:
             self._map_service(g, service)
+        for extmap in self.ext_description:
+            extmap(g, description)
         #ignore type_definitions, element_declarations
 
     def _map_interface(self, g: Graph, interface: Interface) -> None:
@@ -183,6 +240,8 @@ class MapperWSDL2RDF:
             self._map_interfaceOperation(g, interface_operation)
         for interface_fault in interface.interface_faults:
             self._map_interfaceFault(g, interface_fault)
+        for extmap in self.ext_interfaceFault:
+            extmap(g, interface_fault)
 
     def _map_interfaceOperation(self, g: Graph,
                                 interfaceOperation: InterfaceOperation,
@@ -213,10 +272,10 @@ class MapperWSDL2RDF:
         parentid = _create_id(interfaceMessageReference.parent)
         g.add((elemid, RDF.type, WSDL.InterfaceMessageReference))
         g.add((parentid, WSDL.interfaceMessageReference, elemid))
-        elementDeclaration_id = BNode()
-        g.add((elemid, WSDL.elementDeclaration, elementDeclaration_id))
         mcm = interfaceMessageReference.message_content_model
         if mcm == MCM_ELEMENT:
+            elementDeclaration_id = BNode()
+            g.add((elemid, WSDL.elementDeclaration, elementDeclaration_id))
             elem_ns, elem_name = interfaceMessageReference.element_declaration
             for prop, obj in _qname2rdfframes(elem_ns, elem_name):
                 g.add((elementDeclaration_id, prop, obj))
@@ -229,6 +288,8 @@ class MapperWSDL2RDF:
                 interfaceMessageReference.message_label,
                 interfaceMessageReference.parent.message_exchange_pattern)
         g.add((elemid, WSDL.messageLabel, ml_id))
+        for extmap in self.ext_interfaceMessageReference:
+            extmap(g, interfaceMessageReference)
 
     def _map_interfaceFaultReference(
             self, g: Graph,
@@ -250,6 +311,8 @@ class MapperWSDL2RDF:
                 interfaceFaultReference.parent.message_exchange_pattern,
                 )
         g.add((elemid, WSDL.messageLabel, ml_id))
+        for extmap in self.ext_interfaceFaultReference:
+            extmap(g, interfaceFaultReference)
 
 
     def _map_interfaceFault(
@@ -268,6 +331,8 @@ class MapperWSDL2RDF:
             g.add((elementDeclaration_id, prop, obj))
         g.add((elemid, WSDL.messageContentModel,
                MESSAGECONTENTMODEL2URI[interfaceFault.message_content_model]))
+        for extmap in self.ext_interfaceFault:
+            extmap(g, interfaceFault)
 
     def _map_binding(self, g: Graph, binding: Binding) -> None:
         """`https://www.w3.org/TR/wsdl20-rdf/#table2-8`_"""
@@ -353,6 +418,8 @@ class MapperWSDL2RDF:
         g.add((elemid, WSDL.implements, _create_id(service.interface)))
         for endpoint in service.endpoints:
             self._map_endpoint(g, endpoint)
+        for extmap in self.ext_service:
+            extmap(g, service)
 
     def _map_endpoint(self, g: Graph, endpoint: Endpoint) -> None:
         """`https://www.w3.org/TR/wsdl20-rdf/#table2-14`_"""

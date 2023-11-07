@@ -21,6 +21,14 @@ class parser(extension_parser_data):
     endpoint: Optional[WSDLMAPPER[Endpoint]] = field(default=None)
     interfaceOperation: Optional[WSDLMAPPER[InterfaceOperation]]\
              = field(default=None)
+    service: Optional[WSDLMAPPER[Service]] = field(default=None)
+    description: Optional[WSDLMAPPER[description]] = field(default=None)
+    interfaceMessageReference: Optional[WSDLMAPPER[InterfaceMessageReference]]\
+            = field(default=None)
+    interfaceFaultReference: Optional[WSDLMAPPER[InterfaceFaultReference]]\
+            = field(default=None)
+    interface: Optional[WSDLMAPPER[Interface]] = field(default=None)
+    interfaceFault: Optional[WSDLMAPPER[InterfaceFault]] = field(default=None)
 
 
 def _ext_soap_map_binding(g: Graph, binding: Binding) -> None:
