@@ -429,6 +429,10 @@ class MapperWSDL2RDF:
         g.add((parentid, WSDL.endpoint, elemid))
         g.add((elemid, RDFS.label, Literal(endpoint.name)))
         g.add((elemid, WSDL.usesBinding, _create_id(endpoint.binding)))
-        g.add((elemid, WSDL.address, URIRef(endpoint.address)))
+        try:
+            if endpoint.address is not None:
+                g.add((elemid, WSDL.address, URIRef(endpoint.address)))
+        except AttributeError:
+            pass
         for extmap in self.ext_endpoint:
             extmap(g, endpoint)

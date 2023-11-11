@@ -6,7 +6,6 @@ import logging
 logger = logging.getLogger(__name__)
 from . import ex1
 
-ex1.format_to_file
 @pytest.fixture(params=[
     param(ex1.format_to_file, id="helloWorld")
     ])
