@@ -82,6 +82,7 @@ def test_checkServiceOutput(python_service, service_data):
                 "Method of endpoint didnt produce correct output. "\
                 "See debug for more information."
     except AssertionError:
+        logger.debug("Used input: %s" % myinput)
         logger.debug("Method produced output: %s\n\nExpected output: %s"
                      % (result, myoutput))
         raise
