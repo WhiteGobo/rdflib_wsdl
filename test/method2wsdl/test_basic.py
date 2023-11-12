@@ -13,6 +13,7 @@ def mymethod(name: str, number: int) -> str:
     """Combines the name and the number"""
     return "%s%d"% (name, number)
 
+_basicmethod2ttl_interface = "urn://test_basicmethod2ttl#wsdl.interface(test.method2wsdl.test_basic)"
 _basicmethod2ttl_ttl = """
 @prefix ns1: <http://www.w3.org/ns/wsdl-rdf#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -51,32 +52,63 @@ _basicmethod2ttl_ttl = """
     ns1:interfaceOperation <urn://test_basicmethod2ttl#wsdl.interfaceOperation(test.method2wsdl.test_basic/test.method2wsdl.test_basic)> .
 """
 
-@fixture
-def python_service() -> Tuple[Graph, Callable, Tuple, Any]:
-    myinput = ("asdf", 3)
-    myoutput = mymethod(*myinput)
-    return _basicmethod2ttl_ttl, mymethod, myinput, myoutput
+from collections import namedtuple
+MethodTestInformation = namedtuple(
+        "ServiceInformation",
+        ['rdfgraph', 'ttl', 'method', 'test_input','test_output',
+         'interface_name', "targetNamespace"],
+        )
+"""Collection of all information needed to handle one method"""
 
 @fixture
-def service_data(python_service) -> Tuple[Graph, _python_endpoint]:
-    interface_data, method, _, _ = python_service
-    targetNamespace = "urn://test_basicmethod2ttl"
+def method_test_information() -> MethodTestInformation:
+    """Returns all information needed to test a method"""
+    myinput = ("asdf", 3)
+    myoutput = mymethod(*myinput)
+    g = Graph().parse(data=_basicmethod2ttl_ttl, format="ttl")
+    return MethodTestInformation(
+            g, _basicmethod2ttl_ttl, mymethod,
+            myinput, myoutput,
+            _basicmethod2ttl_interface,
+            "urn://test_basicmethod2ttl",
+            )
+    
+@fixture
+def description(method_test_information):
+    method = method_test_information.method
+    targetNamespace = method_test_information.targetNamespace
     interface = python_interface.from_method(method, targetNamespace=targetNamespace)
     interface_operation = next(iter(interface.interface_operations))
     description = interface.parent
     endpoint = python_endpoint.from_method(method, interface_operation)
-    g = generateRDF(description)
-    return g, endpoint
+    #g = generateRDF(description)
+    return description
 
-def test_checkServiceOutput(python_service, service_data):
+@fixture
+def rdfgraph_from_description(description):
+    return generateRDF(description)
+
+@fixture
+def data_test_input_output(method_test_information):
+    """Returns an method input tuple and the expected output for the method."""
+    myinput = method_test_information.test_input
+    myoutput = method_test_information.test_output
+    return myinput, myoutput
+
+@fixture
+def method(description):
+    for service in description.services:
+        for endpoint in service.endpoints:
+            logger.debug("directly loading method from given endpoint")
+            try:
+                yield endpoint.method
+            except AttributeError:
+                raise
+
+def test_checkServiceOutput(data_test_input_output, method):
     """Tests if a service works and produces the correct output"""
-    interface_data, method, myinput, myoutput = python_service
-    g, created_endpoint = service_data
-    try:
-        assert created_endpoint.method is not None
-    except (AttributeError, AssertionError) as err:
-        raise Exception("Couldnt create working method from endpoint") from err
-    result = created_endpoint.method(*myinput)
+    myinput, myoutput = data_test_input_output
+    result = method(*myinput)
     try:
         assert result == myoutput,\
                 "Method of endpoint didnt produce correct output. "\
@@ -87,11 +119,12 @@ def test_checkServiceOutput(python_service, service_data):
                      % (result, myoutput))
         raise
 
-
-def test_checkPythonServiceData(python_service, service_data):
+def test_checkPythonDescriptionData(method_test_information, description,
+                                    rdfgraph_from_description):
     """Checks if created data and expected data is the same"""
-    interface_data, method, _, _ = python_service
-    g, created_endpoint = service_data
+    interface_data = method_test_information.ttl
+    method = method_test_information.method
+    g = rdfgraph_from_description
     iso_g = to_isomorphic(g)
     iso_comp = to_isomorphic(Graph().parse(data=_basicmethod2ttl_ttl,
                                            format="ttl"))

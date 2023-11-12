@@ -173,3 +173,4 @@ class python_endpoint(_python_endpoint):
     @property
     def binding(self) -> Binding:
         return self._binding
+
