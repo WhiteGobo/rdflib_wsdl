@@ -4,11 +4,11 @@ from urllib.parse import urlparse, urlunparse
 from ..wsdl_components import Binding, BindingFaultReference, BindingMessageReference, BindingOperation, Description, ElementDeclaration, Endpoint, Interface, InterfaceFault, InterfaceFaultReference, InterfaceMessageReference, InterfaceOperation, Service, TypeDefinition, Extension, _WSDLComponent, MCM_ANY, MCM_NONE, MCM_OTHER, MCM_ELEMENT, BindingFault
 from ..shared import _ns_wsdl, _ns_wsdlx, _ns_wsdlrdf, _ns_wsoap, _ns_whttp, _ns_wrpc, _ns_sawsdl, _ns_xs, WHTTP, WSDL, WSDLX, WSDL_RDF, WSOAP, SAWSDL, name2qname
 from ..shared import MEP_inOnly, MEP_robustInOnly, MEP_inOut, MEP_inOptionalOut,MEP_outOnly, MEP_robustOutOnly, MEP_outIn, MEP_outOptionalIn
-from .class_MapperWSDL2RDF import MESSAGECONTENTMODEL2URI, _create_id, _qname2id, _messageLabel2URI, _qname2rdfframes, WSDLMAPPER, extension_parser_data
+from .class_MapperWSDL2RDF import MESSAGECONTENTMODEL2URI, _create_id, _qname2id, _messageLabel2URI, _qname2rdfframes, WSDLMAPPER, ExtensionParserData
 from dataclasses import dataclass, field
 
 @dataclass
-class parser(extension_parser_data):
+class ParserData(ExtensionParserData):
     binding: Optional[WSDLMAPPER[Binding]] = field(default=None)
     bindingOperation: Optional[WSDLMAPPER[BindingOperation]]\
              = field(default=None)
@@ -141,7 +141,7 @@ def _map_soap_headerBlock(g: Graph, elemid, elem) -> None:
         return
     raise NotImplementedError()
 
-soapExtension = parser(
+soapExtension = ParserData(
         binding = _ext_soap_map_binding,
         bindingOperation = _ext_soap_map_bindingOperation,
         bindingFault = _ext_soap_map_bindingFault,
@@ -301,7 +301,7 @@ def _ext_sawsdl_interfaceOperation(
             elemid = _create_id(interfaceOperation)
             g.add((elemid, SAWSDL.modelReference, WSDLX.SafeInteraction))
 
-httpExtension = parser(
+httpExtension = ParserData(
         binding = _ext_http_binding,
         bindingOperation = _ext_http_bindingOperation,
         bindingFault = _ext_http_bindingFault,
@@ -309,4 +309,6 @@ httpExtension = parser(
         endpoint = _ext_http_endpoint,
         )
 
-sawsdlExtension = parser(interfaceOperation = _ext_sawsdl_interfaceOperation)
+sawsdlExtension = ParserData(
+        interfaceOperation = _ext_sawsdl_interfaceOperation,
+        )

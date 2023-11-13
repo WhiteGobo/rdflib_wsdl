@@ -17,14 +17,18 @@ _basicmethod2ttl_interface = "urn://test_basicmethod2ttl#wsdl.interface(test.met
 _basicmethod2ttl_ttl = """
 @prefix ns1: <http://www.w3.org/ns/wsdl-rdf#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix pwsdl: <https://github.com/WhiteGobo/rdflib_wsdl/pythonmethods#> .
 
 <urn://test_basicmethod2ttl#wsdl.description()> a ns1:Description ;
     ns1:interface <urn://test_basicmethod2ttl#wsdl.interface(test.method2wsdl.test_basic)> ;
     ns1:service <urn://test_basicmethod2ttl#wsdl.service(mymethod)> .
 
-<urn://test_basicmethod2ttl#wsdl.endpoint(mymethod/mymethod)> a ns1:Endpoint ;
+<urn://test_basicmethod2ttl#wsdl.endpoint(mymethod/mymethod)>
+    a ns1:Endpoint, pwsdl:method;
     rdfs:label "mymethod" ;
-    ns1:usesBinding <urn://test_basicmethod2ttl#wsdl.binding(mymethod)> .
+    ns1:usesBinding <urn://test_basicmethod2ttl#wsdl.binding(mymethod)> ;
+    pwsdl:path "test.method2wsdl.test_basic";
+    pwsdl:name "mymethod".
 
 <urn://test_basicmethod2ttl#wsdl.interfaceMessageReference(test.method2wsdl.test_basic/test.method2wsdl.test_basic/input)> a ns1:InputMessage,
         ns1:InterfaceMessageReference ;

@@ -74,7 +74,7 @@ def _messageLabel2URI(message_label: str, message_exchange_pattern: str,
 _C = TypeVar("_C")
 WSDLMAPPER: TypeAlias = Callable[[Graph, _C], None]
 
-class extension_parser_data:
+class ExtensionParserData:
     binding: Optional[WSDLMAPPER[Binding]]
     bindingOperation: Optional[WSDLMAPPER[BindingOperation]]
     bindingFault: Optional[WSDLMAPPER[BindingFault]]
@@ -113,7 +113,7 @@ class MapperWSDL2RDF:
                     Iterable[WSDLMAPPER[Description]] = [],
             ext_interfaceFault:\
                     Iterable[WSDLMAPPER[InterfaceFault]] = [],
-            additional_extensions: Iterable[extension_parser_data] = [],
+            additional_extensions: Iterable[ExtensionParserData] = [],
             ) -> "MapperWSDL2RDF":
         """Creates a mapper with packed extensions. Use this for easy
         compliance with available :term:`plugins<parser plugin>`.

@@ -1,6 +1,7 @@
 from rdflib import Namespace, RDF, Literal, URIRef
 from collections.abc import Mapping, Iterable
 from typing import Tuple, Optional
+import re
 
 _ns_wsdl = "http://www.w3.org/ns/wsdl"
 """Standard namespace of wsdl"""
@@ -40,3 +41,31 @@ def name2qname(name: str,
     else:
         raise Exception("Broken element name %s" % name)
 
+_ns_python_wsdl = "https://github.com/WhiteGobo/rdflib_wsdl/pythonmethods"
+PYTHONWSDL\
+        = Namespace("https://github.com/WhiteGobo/rdflib_wsdl/pythonmethods#")
+
+
+_parse_binding = re.compile("([^#]+)#wsdl[.]binding[(]([^)]+)[)]$")
+def parse_binding_uri(uri: str):
+    q = _parse_binding.match(uri)
+    targetNamespace, binding_name = q.groups()
+    return targetNamespace, binding_name
+
+_parse_service = re.compile("([^#]+)#wsdl[.]service[(]([^)]+)[)]$")
+def parse_service_uri(uri: str):
+    q = _parse_service.match(uri)
+    targetNamespace, service_name = q.groups()
+    return targetNamespace, service_name
+
+_parse_interface = re.compile("([^#]+)#wsdl[.]interface[(]([^)]+)[)]$")
+def parse_interface_uri(uri: str):
+    q = _parse_interface.match(uri)
+    targetNamespace, name = q.groups()
+    return targetNamespace, name
+
+_parse_endpoint = re.compile("([^#]+)#wsdl[.]endpoint[(]([^/]+)[/]([^)]+)[)]$")
+def parse_endpoint_uri(uri: str):
+    q = _parse_endpoint.match(uri)
+    targetNamespace, service_name, endpoint_name = q.groups()
+    return targetNamespace, service_name, endpoint_name

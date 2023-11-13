@@ -7,6 +7,10 @@ from dataclasses import dataclass, field
 from .generell import easyDescription, easyInterface, easyService,\
         easyEndpoint, easyInterfaceOperation, easyBinding,\
         easyInterfaceMessageReference_in, easyInterfaceMessageReference_out
+from ..shared import _ns_python_wsdl
+import importlib
+import logging
+logger = logging.getLogger(__name__)
 
 class python_interfaceOperation(easyInterfaceOperation):
     @classmethod
@@ -73,6 +77,11 @@ class _python_endpoint(Endpoint):
         module = importlib.import_module(self.module_name)
         return getattr(module, self.method_name)
 
+    def get(self, namespace: str, name: str, **kwargs: Any) -> Any:
+        if namespace == _ns_python_wsdl:
+            raise NotImplementedError()
+        return super().get(namespace, name, **kwargs)
+
     @property
     @abc.abstractmethod
     def method(self) -> Callable: ...
@@ -106,6 +115,39 @@ class _python_endpoint(Endpoint):
         """
         raise AttributeError()
 
+class _python_endpoint_importer(_python_endpoint):
+    def __init__(self, service: easyService, binding: Binding,
+                 method_path: str, method_name: str, name: str):
+        self._name = name
+        self._method_path = method_path
+        self._method_name = method_name
+        self._parent = service
+        self._binding = binding
+
+    @property
+    def method(self) -> str:
+        module = importlib.import_module(self.module_name)
+        try:
+            return getattr(module, str(self.method_name))
+        except AttributeError:
+            logger.critical(repr(self.method_name))
+            raise
+
+    @property
+    def method_name(self) -> str:
+        return self._method_name
+
+    @property
+    def module_name(self) -> str:
+        return self._method_path
+
+    @property
+    def parent(self) -> easyService:
+        return self._parent
+
+    @property
+    def binding(self) -> Binding:
+        return self._binding
 
 class python_endpoint(_python_endpoint):
     """Implementation of an endpoint for a method with a method as central
