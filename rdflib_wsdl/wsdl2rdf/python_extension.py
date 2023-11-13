@@ -1,8 +1,10 @@
 from .extensions import ParserData
 from ..shared import PYTHONWSDL, _ns_python_wsdl
-from rdflib import Graph, RDF
+from rdflib import Graph, RDF, Literal
 from ..wsdl_components import Endpoint
 from .class_MapperWSDL2RDF import _create_id
+import logging
+logger = logging.getLogger(__name__)
 
 def _ext_python_map_endpoint(g: Graph, endpoint: Endpoint):
     try:

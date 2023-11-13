@@ -79,7 +79,12 @@ class _python_endpoint(Endpoint):
 
     def get(self, namespace: str, name: str, **kwargs: Any) -> Any:
         if namespace == _ns_python_wsdl:
-            raise NotImplementedError()
+            if name == "module":
+                return self.module_name
+            elif name == "method":
+                return self.method_name
+            else:
+                raise KeyError(namespace, name)
         return super().get(namespace, name, **kwargs)
 
     @property
@@ -99,10 +104,6 @@ class _python_endpoint(Endpoint):
     @property
     def name(self):
         return self._name
-
-    def get(self, namespace: str, name: str, **kwargs: Any) -> Any:
-        """No extra information given in this implementation."""
-        raise KeyError()
 
     @property
     def targetNamespace(self) -> str:

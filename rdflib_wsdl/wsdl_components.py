@@ -42,6 +42,7 @@ class Binding(_WSDLComponent):
     @abc.abstractmethod
     def get(self, namespace: str, name: str, **kwargs: Any) -> Any:
         """This is needed to get access to data of extensions"""
+        raise KeyError(namespace, name)
 
     @property
     @abc.abstractmethod
@@ -72,6 +73,7 @@ class BindingFault(_WSDLComponent):
     @abc.abstractmethod
     def get(self, namespace, name, **kwargs: Any) -> Any:
         """This is needed to get access to data of extensions"""
+        raise KeyError(namespace, name)
 
     @property
     @abc.abstractmethod
@@ -95,6 +97,7 @@ class BindingFaultReference(_WSDLComponent):
     @abc.abstractmethod
     def get(self, namespace, name, **kwargs: Any) -> Any:
         """This is needed to get access to data of extensions"""
+        raise KeyError(namespace, name)
 
     @property
     @abc.abstractmethod
@@ -139,6 +142,7 @@ class BindingMessageReference(_WSDLComponent):
     @abc.abstractmethod
     def get(self, namespace, name, **kwargs: Any) -> Any:
         """This is needed to get access to data of extensions"""
+        raise KeyError(namespace, name)
 
     @property
     @abc.abstractmethod
@@ -172,6 +176,7 @@ class BindingOperation(_WSDLComponent):
     @abc.abstractmethod
     def get(self, namespace, name, **kwargs: Any) -> Any:
         """This is needed to get access to data of extensions"""
+        raise KeyError(namespace, name)
 
     @property
     @abc.abstractmethod
@@ -266,7 +271,8 @@ class ElementDeclaration(_WSDLComponent):
 
 class Endpoint(_WSDLComponent):
     @abc.abstractmethod
-    def get(self, namespace: str, name: str, **kwargs: Any) -> Any: ...
+    def get(self, namespace: str, name: str, **kwargs: Any) -> Any:
+        raise KeyError(namespace, name)
 
     @property
     @abc.abstractmethod
@@ -431,7 +437,8 @@ class InterfaceMessageReference(_WSDLComponent):
 
 class InterfaceOperation(_WSDLComponent):
     @abc.abstractmethod
-    def get(self, namespace: str, name: str, **kwargs: Any) -> Any: ...
+    def get(self, namespace: str, name: str, **kwargs: Any) -> Any:
+        raise KeyError(namespace, name)
 
     @property
     @abc.abstractmethod
