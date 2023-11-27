@@ -1,8 +1,12 @@
 PYTHON_TEST ?=python3 -m pytest
 PYTEST_OPT ?=--log-level=INFO
+DOCS_DIR = docs
 
 build:
 	python -m build
+
+docs:
+	$(MAKE) -c $(DOCS_DIR) html
 
 .PHONY: test
 test:
