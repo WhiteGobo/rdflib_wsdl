@@ -1,26 +1,37 @@
 import pytest
-from pytest import param
+from pytest import param, skip
 from rdflib import Graph
 from rdflib.compare import to_isomorphic, graph_diff
 import logging
 logger = logging.getLogger(__name__)
 from . import ex1
+from collections import namedtuple
+DescriptionInfo = namedtuple("DescriptionInfo",
+                             ["path_ttl", "path_wsdl", "graph"],
+                             )
 
 @pytest.fixture(params=[
-    param(ex1.format_to_file, id="helloWorld")
+    param(ex1, id="greath.example.com/2004/wsdl/resSvc"),
     ])
-def compareFiles(request) -> dict[str, str]:
+def description_info(request, register_wsdl_format) -> dict[str, str]:
     """Returns a dictionary with a fileformat to a file. Each file contains
     the same information. The fileformat is compatible to rdflib.
     """
-    return request.param
+    q = request.param
+    g = Graph().parse(q.path_ttl, format="ttl")
+    return DescriptionInfo(q.path_ttl, q.path_wsdl, g)
 
 
-def test_compareDifferentFormats(register_wsdl_format, compareFiles):
-    format2path = iter(compareFiles.items())
-    fileformat, filepath = next(format2path)
-    comparegraph = Graph().parse(filepath, format=fileformat)
-    iso_comp = to_isomorphic(comparegraph)
+def test_compareDifferentFormats(register_wsdl_format, description_info):
+    compare_graph = description_info.graph
+    if compare_graph is None:
+        skip("No default graph given")
+    format2path = [ (key, info) for key, info in [
+                   ("ttl", description_info.path_ttl),
+                   ("wsdl", description_info.path_wsdl),
+                   ] if info is not None ]
+    #format2path = iter(compareFiles.items())
+    iso_comp = to_isomorphic(compare_graph)
     for fileformat, filepath in format2path:
         nextgraph = Graph().parse(filepath, format=fileformat)
         iso_next = to_isomorphic(nextgraph)

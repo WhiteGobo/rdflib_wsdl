@@ -6,9 +6,9 @@ RDF taken from `https://www.w3.org/TR/wsdl20-rdf/#example`_
 from os import getcwd
 from os.path import join, split
 
-path, init_file = split(__file__)
-_tmp = "ex1%s"
-format_to_file = {
-        "ttl": join(path, _tmp % ".ttl"),
-        "wsdl": join(path, _tmp % ".wsdl"),
-        }
+from importlib.resources import files
+from . import local
+localfiles = files(local)
+
+path_ttl = localfiles.joinpath("ex1.ttl")
+path_wsdl = localfiles.joinpath("ex1.wsdl")
