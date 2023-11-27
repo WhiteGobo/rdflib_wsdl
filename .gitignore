@@ -4,4 +4,4 @@ rdflib_wsdl.egg-info/
 build/
 .hypothesis/
 *.swp
-docs/build/*
+docs/_build/*
