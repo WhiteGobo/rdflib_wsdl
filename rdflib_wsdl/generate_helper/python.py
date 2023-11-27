@@ -1,4 +1,5 @@
 import abc
+from rdflib import Graph, IdentifiedNode, RDF
 from ..wsdl_components import Description, Interface, InterfaceMessageReference, InterfaceOperation, MCM_OTHER, Service, Endpoint, Binding
 from typing import Callable, Any, List, Iterable, Optional, Tuple
 from inspect import signature, Parameter, getmodule
@@ -7,10 +8,26 @@ from dataclasses import dataclass, field
 from .generell import easyDescription, easyInterface, easyService,\
         easyEndpoint, easyInterfaceOperation, easyBinding,\
         easyInterfaceMessageReference_in, easyInterfaceMessageReference_out
-from ..shared import _ns_python_wsdl
+from ..shared import _ns_python_wsdl, PYTHONWSDL, WSDL
 import importlib
 import logging
 logger = logging.getLogger(__name__)
+from ..extensions import rdf_interfaces
+from ..extensions.rdf_interfaces import RetrieveFailed
+
+def load_method_from_rdf(wsdlgraph: Graph, endpoint_iri: IdentifiedNode):
+    #if (endpoint_iri, RDF.type, PYTHONWSDL.method) not in wsdlgraph:
+    #    raise RetrieveFailed()
+    path = wsdlgraph.value(endpoint_iri, PYTHONWSDL.path)
+    name = wsdlgraph.value(endpoint_iri, PYTHONWSDL.name)
+    if path is None or name is None:
+        raise RetrieveFailed()
+    module = importlib.import_module(str(path))
+    return getattr(module, str(name))
+#This should be done via an extension later, when this is outsourced to an own package
+rdf_interfaces.extras_endpoint.setdefault("method", []).append(load_method_from_rdf)
+
+
 
 class python_interfaceOperation(easyInterfaceOperation):
     @classmethod

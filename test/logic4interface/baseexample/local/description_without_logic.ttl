@@ -1,0 +1,45 @@
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix wsdl:    <http://www.w3.org/ns/wsdl-rdf#> .
+@prefix ns1: <http://www.w3.org/ns/wsdl-rdf#> .
+@prefix pwsdl: <https://github.com/WhiteGobo/rdflib_wsdl/pythonmethods#> .
+
+<urn://test/test_loadlogic#wsdl.description()>
+      a     wsdl:Description ;
+      wsdl:service <urn://test/information#wsdl.service(mymethod)> ;
+      wsdl:interface 
+            <urn://test/information#wsdl.interface(myInterface)> .
+
+<urn://test/information#wsdl.interface(myInterface)> 
+      a     wsdl:Interface ;
+      rdfs:label "myInterface" ;
+      wsdl:interfaceOperation 
+            <urn://test/information#wsdl.interfaceOperation(myInterface/myio)>.
+
+<urn://test/information#wsdl.interfaceOperation(myInterface/myio)>
+      a     wsdl:InterfaceOperation ;
+      rdfs:label "opCheckAvailability" ;
+      wsdl:interfaceMessageReference 
+            <urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/In)> ,
+            <urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/Out)> .
+
+<urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/In)>
+    a wsdl:InterfaceMessageReference, wsdl:InputMessage ;
+    wsdl:messageContentModel wsdl:Other ;
+    wsdl:messageLabel <http://www.w3.org/ns/wsdl/in-out#In> .
+
+<urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/Out)>
+    a wsdl:InterfaceMessageReference, wsdl:OutputMessage ;
+    wsdl:messageContentModel wsdl:Other ;
+    wsdl:messageLabel <http://www.w3.org/ns/wsdl/in-out#Out> .
+
+<urn://test/information#wsdl.service(mymethod)> a ns1:Service ;
+    rdfs:label "mymethod" ;
+    ns1:endpoint <urn://test/information#wsdl.endpoint(mymethod/mymethod)> ;
+    ns1:implements <urn://test/information#wsdl.interface(myInterface)>.
+
+<urn://test/information#wsdl.endpoint(mymethod/mymethod)>
+    a ns1:Endpoint, pwsdl:method;
+    rdfs:label "mymethod" ;
+    ns1:usesBinding <urn://test/information#wsdl.binding(mymethod)> ;
+    pwsdl:path "test.method2wsdl.test_basic";
+    pwsdl:name "mymethod".

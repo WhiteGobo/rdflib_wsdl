@@ -1,0 +1,64 @@
+@prefix ns1: <https://github.com/WhiteGobo/rdflib_wsdl/rdflogic#> .
+@prefix ns2: <http://www.w3.org/ns/wsdl-rdf#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix wsdl: <http://www.w3.org/ns/wsdl-rdf#> .
+@prefix pwsdl: <https://github.com/WhiteGobo/rdflib_wsdl/pythonmethods#> .
+
+<urn://test/test_loadlogic#wsdl.description()> a ns2:Description ;
+    wsdl:interface <urn://test/information#wsdl.interface(myInterface)> ;
+    wsdl:service <urn://test/information#wsdl.service(mymethod)> ;
+    ns1:logicFormula <urn://test/test_loadlogic#logicwsdl.logicformula(In)>,
+        <urn://test/test_loadlogic#logicwsdl.logicformula(Out)> .
+
+<urn://test/information#wsdl.interface(myInterface)> a ns2:Interface ;
+    rdfs:label "myInterface" ;
+    ns2:interfaceOperation <urn://test/information#wsdl.interfaceOperation(myInterface/myio)> .
+
+<urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/In)> a ns2:InputMessage,
+        ns2:InterfaceMessageReference ;
+    ns2:messageContentModel ns2:Other ;
+    ns2:messageLabel <http://www.w3.org/ns/wsdl/in-out#In> ;
+    ns1:elementsDescribedBy <urn://test/test_loadlogic#logicwsdl.logicformula(In)> .
+
+<urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/Out)> a ns2:InterfaceMessageReference,
+        ns2:OutputMessage ;
+    ns2:messageContentModel ns2:Other ;
+    ns2:messageLabel <http://www.w3.org/ns/wsdl/in-out#Out> ;
+    ns1:elementsDescribedBy <urn://test/test_loadlogic#logicwsdl.logicformula(Out)> .
+
+<urn://test/information#wsdl.interfaceOperation(myInterface/myio)> a ns2:InterfaceOperation ;
+    rdfs:label "opCheckAvailability" ;
+    ns2:interfaceMessageReference <urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/In)>,
+        <urn://test/information#wsdl.interfaceMessageReference(myInterface/myio/Out)> .
+
+<urn://test/test_loadlogic#logicwsdl.logicformula(In)> ns1:formulas ( [ a ns1:Frame ;
+                ns1:object [ a ns1:Const ;
+                        ns1:constIRI "urn://test/information#base" ] ;
+                ns1:slot ( [ ns1:slotkey [ a ns1:Const ;
+                                    ns1:constIRI "urn://test/information#strpointer" ] ;
+                            ns1:slotvalue [ a ns1:Var ;
+                                    ns1:varname "mystr" ] ] [ ns1:slotkey [ a ns1:Const ;
+                                    ns1:constIRI "urn://test/information#intpointer" ] ;
+                            ns1:slotvalue [ a ns1:Var ;
+                                    ns1:varname "myint" ] ] ) ] ) .
+
+<urn://test/test_loadlogic#logicwsdl.logicformula(Out)> ns1:formulas ( [ a ns1:Frame ;
+                ns1:object [ a ns1:Const ;
+                        ns1:constIRI "urn://test/information#base" ] ;
+                ns1:slot ( [ ns1:slotkey [ a ns1:Const ;
+                                    ns1:constIRI "urn://test/information#amalgamation" ] ;
+                            ns1:slotvalue [ a ns1:Var ;
+                                    ns1:varname "myreturn" ] ] ) ] ) .
+
+<urn://test/information#wsdl.service(mymethod)> a wsdl:Service ;
+    rdfs:label "mymethod" ;
+    wsdl:endpoint <urn://test/information#wsdl.endpoint(mymethod/mymethod)> ;
+    wsdl:implements <urn://test/information#wsdl.interface(myInterface)>.
+
+<urn://test/information#wsdl.endpoint(mymethod/mymethod)>
+    a wsdl:Endpoint, pwsdl:method;
+    rdfs:label "mymethod" ;
+    wsdl:usesBinding <urn://test/information#wsdl.binding(mymethod)> ;
+    pwsdl:path "test.method2wsdl.test_basic";
+    pwsdl:name "mymethod".

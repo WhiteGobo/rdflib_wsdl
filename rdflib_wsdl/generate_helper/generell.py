@@ -1,4 +1,6 @@
 from typing import Callable, Any, List, Iterable, Optional, Tuple
+from rdflib import Graph, URIRef
+from ..shared import WSDL, parse_description_iri, parse_interface_uri
 from ..wsdl_components import\
         Description, Interface, InterfaceOperation,\
         InterfaceFaultReference, InterfaceMessageReference,\
@@ -27,6 +29,11 @@ class easyDescription(Description):
         self._targetNamespace = targetNamespace
         self._type_definitions = []
         self._element_declarations = []
+
+    @classmethod
+    def from_rdfgraph(cls, graph: Graph, iri: URIRef):
+        targetNamespace = parse_description_iri(iri)
+        return cls(targetNamespace)
 
     @property
     def parent(self):
@@ -113,6 +120,15 @@ class easyInterface(Interface):
         self._targetNamespace = targetNamespace
         self._extended_interfaces = []
         parent.interfaces.append(self)
+
+    @classmethod
+    def from_rdfgraph(cls, graph: Graph, iri: URIRef,
+                      description: Optional["easyDescription"] = None):
+        if description is None:
+            description_iri = graph.value(predicate=WSDL.interface, object=iri)
+            description = easyDescription.from_rdfgraph(graph, description_iri)
+        _, name = parse_interface_uri(iri)
+        return cls(description, name)
 
     @property
     def parent(self) -> easyDescription:

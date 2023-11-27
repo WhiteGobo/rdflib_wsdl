@@ -4,3 +4,4 @@ from .generell import easyDescription, easyInterface, easyService,\
         easyInterfaceMessageReference_in, easyInterfaceMessageReference_out
 
 from .endpoint_loader_python import load_python_endpoints
+from . import rdflogic

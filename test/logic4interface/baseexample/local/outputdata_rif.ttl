@@ -1,0 +1,9 @@
+@prefix ns1: <https://github.com/WhiteGobo/rdflib_wsdl/rdflogic#> .
+
+<urn://test/test_loadlogic#logicwsdl.logicformula(Out)> ns1:formulas ( [ a ns1:Frame ;
+                ns1:object [ a ns1:Const ;
+                        ns1:constIRI "urn://test/information#base" ] ;
+                ns1:slot ( [ ns1:slotkey [ a ns1:Const ;
+                                    ns1:constIRI "urn://test/information#amalgamation" ] ;
+                            ns1:slotvalue [ a ns1:Var ;
+                                    ns1:varname "myreturn" ] ] ) ] ) .

@@ -44,7 +44,15 @@ def name2qname(name: str,
 _ns_python_wsdl = "https://github.com/WhiteGobo/rdflib_wsdl/pythonmethods"
 PYTHONWSDL\
         = Namespace("https://github.com/WhiteGobo/rdflib_wsdl/pythonmethods#")
+_ns_rdflogic_wsdl = "https://github.com/WhiteGobo/rdflib_wsdl/rdflogic"
+RDFLOGICWSDL\
+        = Namespace("https://github.com/WhiteGobo/rdflib_wsdl/rdflogic#")
 
+_parse_description = re.compile("([^#]+)#wsdl[.]description[(][)]$")
+def parse_description_iri(iri: str):
+    q = _parse_description.match(iri)
+    targetNamespace, = q.groups()
+    return targetNamespace
 
 _parse_binding = re.compile("([^#]+)#wsdl[.]binding[(]([^)]+)[)]$")
 def parse_binding_uri(uri: str):
@@ -61,8 +69,36 @@ def parse_service_uri(uri: str):
 _parse_interface = re.compile("([^#]+)#wsdl[.]interface[(]([^)]+)[)]$")
 def parse_interface_uri(uri: str):
     q = _parse_interface.match(uri)
-    targetNamespace, name = q.groups()
+    try:
+        targetNamespace, name = q.groups()
+    except AttributeError as err:
+        raise Exception("couldnt parse interface uri: %s" % uri) from err
     return targetNamespace, name
+
+_parse_interface_message_reference = re.compile(
+        "([^#]+)#wsdl.interfaceMessageReference[(]([^/]+)[/]([^/]+)[/]([^)]+)[)]$")
+def parse_interface_message_reference_iri(iri: str):
+    q = _parse_interface_message_reference.match(iri)
+    try:
+        targetNamespace, interface_name, operation_name, name = q.groups()
+    except AttributeError as err:
+        raise Exception("couldnt parse interface message reference: %s" % iri)\
+                from err
+    return targetNamespace, interface_name, operation_name, name
+
+_parse_interface_operation = re.compile(\
+        "([^#]+)#wsdl[.]interfaceOperation[(]([^/]+)[/]([^)]+)[)]$")
+def parse_interface_operation_iri(iri: str):
+    q = _parse_interface_operation.match(iri)
+    targetNamespace, interface_name, operation_name = q.groups()
+    return targetNamespace, interface_name, operation_name
+
+_parse_message_reference = re.compile(\
+        "([^#]+)#wsdl[.]interfaceMessageReference[(]([^/]+)[/]([^/]+)[/]([^)]+)[)]$")
+def parse_message_reference_iri(iri: str):
+    q = _parse_message_reference.match(iri)
+    targetNamespace, interface_name, operation_name, name = q.groups()
+    return targetNamespace, interface_name, operation_name, name
 
 _parse_endpoint = re.compile("([^#]+)#wsdl[.]endpoint[(]([^/]+)[/]([^)]+)[)]$")
 def parse_endpoint_uri(uri: str):

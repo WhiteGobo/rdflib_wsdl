@@ -23,13 +23,6 @@ _basicmethod2ttl_ttl = """
     ns1:interface <urn://test_basicmethod2ttl#wsdl.interface(test.method2wsdl.test_basic)> ;
     ns1:service <urn://test_basicmethod2ttl#wsdl.service(mymethod)> .
 
-<urn://test_basicmethod2ttl#wsdl.endpoint(mymethod/mymethod)>
-    a ns1:Endpoint, pwsdl:method;
-    rdfs:label "mymethod" ;
-    ns1:usesBinding <urn://test_basicmethod2ttl#wsdl.binding(mymethod)> ;
-    pwsdl:path "test.method2wsdl.test_basic";
-    pwsdl:name "mymethod".
-
 <urn://test_basicmethod2ttl#wsdl.interfaceMessageReference(test.method2wsdl.test_basic/test.method2wsdl.test_basic/input)> a ns1:InputMessage,
         ns1:InterfaceMessageReference ;
     ns1:messageContentModel ns1:OtherContent ;
@@ -50,6 +43,13 @@ _basicmethod2ttl_ttl = """
     rdfs:label "mymethod" ;
     ns1:endpoint <urn://test_basicmethod2ttl#wsdl.endpoint(mymethod/mymethod)> ;
     ns1:implements <urn://test_basicmethod2ttl#wsdl.interface(test.method2wsdl.test_basic)> .
+
+<urn://test_basicmethod2ttl#wsdl.endpoint(mymethod/mymethod)>
+    a ns1:Endpoint, pwsdl:method;
+    rdfs:label "mymethod" ;
+    ns1:usesBinding <urn://test_basicmethod2ttl#wsdl.binding(mymethod)> ;
+    pwsdl:path "test.method2wsdl.test_basic";
+    pwsdl:name "mymethod".
 
 <urn://test_basicmethod2ttl#wsdl.interface(test.method2wsdl.test_basic)> a ns1:Interface ;
     rdfs:label "test.method2wsdl.test_basic" ;

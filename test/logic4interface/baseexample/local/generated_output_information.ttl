@@ -1,0 +1,2 @@
+@prefix A: <urn://test/information#> .
+A:base A:amalgamation A:myreturn.

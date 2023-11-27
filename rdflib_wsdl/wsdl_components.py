@@ -16,6 +16,10 @@ class _WSDLComponent(abc.ABC):
     """A comprehensive list of all components and their properties canbe found
     `https://www.w3.org/TR/wsdl/#componentsummary`_
     """
+    #@property
+    #@abc.abstractmethod
+    #def iri(self) -> URIRef: ...
+
     @property
     @abc.abstractmethod
     def parent(self) -> Optional["_WSDLComponent"]: ...
