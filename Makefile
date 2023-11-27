@@ -5,8 +5,9 @@ DOCS_DIR = docs
 build:
 	python -m build
 
+.PHONY: docs
 docs:
-	$(MAKE) -c $(DOCS_DIR) html
+	$(MAKE) -C $(DOCS_DIR) html
 
 .PHONY: test
 test:
