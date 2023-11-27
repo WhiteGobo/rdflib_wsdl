@@ -10,6 +10,18 @@ Welcome to rdflib_wsdl's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   parsing
+   plugin
+
+
+Glossary
+========
+
+.. glossary::
+
+   Parsing
+   Serializing
+     Each wsdl can be parsed in RDF
 
 
 Indices and tables
@@ -18,3 +30,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+

@@ -23,6 +23,9 @@ def description_info(request, register_wsdl_format) -> dict[str, str]:
 
 
 def test_compareDifferentFormats(register_wsdl_format, description_info):
+    """Tests if when :term:`Parsing` the graph is correctly translated into
+    RDF
+    """
     compare_graph = description_info.graph
     if compare_graph is None:
         skip("No default graph given")
