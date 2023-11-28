@@ -13,3 +13,5 @@ Serializer is not yet implemented.
         g = Graph().parse(data_path, format='wsdl')
         #print(g.serialize(format='wsdl'))
 
+
+Parser is implemented via :py:class:`rdflib_wsdl.rdflib_plugin.WSDLXMLParser`.

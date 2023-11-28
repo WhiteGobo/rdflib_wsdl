@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 
 @dataclass
 class ParserData(ExtensionParserData):
+    """An Implementation of :py:class:`ExtensionParserData`
+    """
     binding: Optional[WSDLMAPPER[Binding]] = field(default=None)
     bindingOperation: Optional[WSDLMAPPER[BindingOperation]]\
              = field(default=None)
@@ -29,6 +31,22 @@ class ParserData(ExtensionParserData):
             = field(default=None)
     interface: Optional[WSDLMAPPER[Interface]] = field(default=None)
     interfaceFault: Optional[WSDLMAPPER[InterfaceFault]] = field(default=None)
+
+    def __repr__(self) -> str:
+        return "ParserData(%s)" % ", ".join(f"{key}={x}" for key, x in (
+            ("binding", self.binding),
+            ("bindingOperation", self.bindingOperation),
+            ("bindingFault", self.bindingFault),
+            ("bindingMessageReference", self.bindingMessageReference),
+            ("bindingFaultReference", self.bindingFaultReference),
+            ("endpoint", self.endpoint),
+            ("service", self.service),
+            ("interfaceOperation", self.interfaceOperation),
+            ("interfaceMessageReference", self.interfaceMessageReference),
+            ("interfaceFaultReference", self.interfaceFaultReference),
+            ("interface", self.interface),
+            ("interfaceFault", self.interfaceFault),
+            ) if x is not None)
 
 
 def _ext_soap_map_binding(g: Graph, binding: Binding) -> None:

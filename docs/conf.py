@@ -3,6 +3,11 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "..")))
+import rdflib_wsdl
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
@@ -15,6 +20,7 @@ author = 'Richard Focke Fechner'
 
 extensions = [
     'sphinx.ext.todo',
+    'sphinx.ext.autodoc',
 ]
 
 templates_path = ['_templates']

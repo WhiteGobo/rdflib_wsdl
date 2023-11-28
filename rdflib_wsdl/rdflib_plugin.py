@@ -19,6 +19,7 @@ class WSDLXML_PluginException(rdflib.plugin.PluginException):
     """Expected errortype of rdflib.Graph.parse."""
 
 class WSDLXMLParser(rdflib.parser.Parser):
+    """Implementation of a :term:`parser<Parsing>` for `rdflib.plugins`"""
     _parser: WSDLXMLHandler
 
     def parse(self, source, sink, preserve_bnode_ids=None):

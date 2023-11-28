@@ -1,3 +1,17 @@
+"""
+WSDL2RDF
+========
+
+WSDL parsing can be extended via :py:module:`rdflib_wsdl.wsdl2rdf`. Please see its documentation for a howto.
+
+
+Plugin support for parser of :term:`WSDL`. This module uses the
+:term:`entry point` ``'rdflib_wsdl.extensions.parser'``.
+
+If you are using setuptools, you can implement a :py:class:`rdflib_wsdl.wsdl2rdf.class_MapperWSDL2RDF.ExtensionParserData` as an entry point
+as described in
+`https://setuptools.pypa.io/en/latest/userguide/entry_point.html#entry-points-for-plugins`_
+"""
 import sys
 import typing as typ
 if sys.version_info < (3, 10):
@@ -8,12 +22,18 @@ from .class_MapperWSDL2RDF import MapperWSDL2RDF, ExtensionParserData
 from .extensions import ParserData, sawsdlExtension, httpExtension, soapExtension
 
 additional_parser: typ.Iterable[ExtensionParserData]\
-        = entry_points(group='rdflib_wsdl.extensions.parser')
+        = [x.load() for x in entry_points(group='rdflib_wsdl.extensions.parser')]
 """All available additional parsers specified by
 entrypoint 'rdflib_wsdl.extensions.parser'. See parser for more information.
+Can be extended instead of relying on entrypoints:
+
+```
+my_parser_plugin = ParserData(...)
+rdflib_wsdl.wsdl2rdf.additional_parser.append(my_parser_plugin)
+```
+
+A :term:`rdflib_wsdl plugin`.
 """
-if additional_parser:
-    raise Exception(additional_parser)
 
 from .python_extension import python_extension
 all_parser = [sawsdlExtension, httpExtension, soapExtension, python_extension,

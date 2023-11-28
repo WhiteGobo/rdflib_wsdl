@@ -75,6 +75,8 @@ _C = TypeVar("_C")
 WSDLMAPPER: TypeAlias = Callable[[Graph, _C], None]
 
 class ExtensionParserData:
+    """
+    """
     binding: Optional[WSDLMAPPER[Binding]]
     bindingOperation: Optional[WSDLMAPPER[BindingOperation]]
     bindingFault: Optional[WSDLMAPPER[BindingFault]]
