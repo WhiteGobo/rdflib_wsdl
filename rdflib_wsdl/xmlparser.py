@@ -7,24 +7,32 @@ from .xmlparser_states import _start, _state, name2qname, wsdl_description
 from io import IOBase
 from xml.sax.xmlreader import AttributesImpl
 
-from .wsdl2rdf import generateRDF
+from .wsdl2rdf import MapperWSDL2RDF, additional_parser
 
 class WSDLXMLHandler(xml.sax.handler.ContentHandler):
     """Transforms given wsdl/xml into rdf. Adds all triples to given sink.
     """
     startingstate: type[_state] = _start
     locator: Optional[IOBase]
+    rdf_generator: MapperWSDL2RDF
 
     @classmethod
-    def create_parser(cls, target, store) -> XMLReader:
+    def create_parser(cls, target, store,
+                      rdf_generator: MapperWSDL2RDF=None) -> XMLReader:
         """Create a parser with this as content handler. Automaticly sets
         all expected features. Parsing adds all generated rdf triples
         to given store.
+
+        :param rdf_generator: If not given automaticly creates a mapper from
         """
+        if rdf_generator is None:
+            rdf_generator = MapperWSDL2RDF.create_with_parser_data(
+                    additional_extensions = additional_parser,
+                    )
         parser = xml.sax.make_parser()
         parser.setFeature(xml.sax.handler.feature_namespaces, 0)
         #parser.setFeature(xml.sax.handler.feature_namespace_prefixes, 1)
-        self = cls(store)
+        self = cls(store, rdf_generator)
         self.setDocumentLocator(target)
         # rdfxml.setDocumentLocator(_Locator(self.url, self.parser))
         parser.setContentHandler(self)
@@ -32,7 +40,8 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
         return parser
 
 
-    def __init__(self, store):
+    def __init__(self, store, rdf_generator):
+        self.rdf_generator = rdf_generator
         self.store = store
         self.preserve_bnode_ids = False
         self.reset()
@@ -72,7 +81,7 @@ class WSDLXMLHandler(xml.sax.handler.ContentHandler):
         assert isinstance(self.currentState, _start)
         assert self.currentState.first_state is not None
 
-        for ax in generateRDF(self.currentState.first_state):
+        for ax in self.rdf_generator(self.currentState.first_state):
             self.store.add(ax)
         #endinfograph = self.currentState.finalize()
         #for ax in endinfograph:

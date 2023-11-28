@@ -20,9 +20,12 @@ else:
     from importlib.metadata import entry_points
 from .class_MapperWSDL2RDF import MapperWSDL2RDF, ExtensionParserData
 from .extensions import ParserData, sawsdlExtension, httpExtension, soapExtension
+from .python_extension import python_extension
 
 additional_parser: typ.Iterable[ExtensionParserData]\
-        = [x.load() for x in entry_points(group='rdflib_wsdl.extensions.parser')]
+        = [sawsdlExtension, httpExtension, soapExtension, python_extension,
+           *(x.load() for x in entry_points(group='rdflib_wsdl.extensions.parser'))
+           ]
 """All available additional parsers specified by
 entrypoint 'rdflib_wsdl.extensions.parser'. See parser for more information.
 Can be extended instead of relying on entrypoints:
@@ -35,7 +38,6 @@ rdflib_wsdl.wsdl2rdf.additional_parser.append(my_parser_plugin)
 A :term:`rdflib_wsdl plugin`.
 """
 
-from .python_extension import python_extension
 all_parser = [sawsdlExtension, httpExtension, soapExtension, python_extension,
               *additional_parser]
 """All available parsers, so additional and builtin.
